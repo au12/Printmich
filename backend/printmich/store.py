@@ -29,7 +29,7 @@ def parse_iso(s: str | None) -> dt.datetime | None:
     return d if d.tzinfo else d.replace(tzinfo=dt.UTC)
 
 
-JSON_PRINT_FIELDS = ("preset", "paper", "asset", "render")
+JSON_PRINT_FIELDS = ("preset", "paper", "asset", "render", "ink")
 
 
 class Store:
@@ -339,6 +339,23 @@ class Store:
                 "years": [y for y in years if y]}
 
     # ------------------------------------------------------------ events
+    # ------------------------------------------------------------ ink ledger
+    INK_EVENT_FIELDS = ("at", "ink", "kind", "level_ml", "level_before_ml", "added_ml", "used_ml", "used_est_ml", "note")
+
+    def add_ink_event(self, **fields: Any) -> int:
+        data = {k: fields.get(k) for k in self.INK_EVENT_FIELDS}
+        data["at"] = data["at"] or now_iso()
+        cur = self.db.execute(f"INSERT INTO ink_events({', '.join(data)}) VALUES({', '.join('?' for _ in data)})",
+                              tuple(data.values()))
+        return int(cur.lastrowid or 0)
+
+    def ink_events(self, limit: int = 200) -> list[dict[str, Any]]:
+        return self.db.query("SELECT * FROM ink_events ORDER BY at DESC, id DESC LIMIT ?", (limit,))
+
+    def delete_ink_event(self, event_id: int) -> bool:
+        return self.db.execute("DELETE FROM ink_events WHERE id = ?", (event_id,)).rowcount > 0
+
+    # ------------------------------------------------------------ activity log
     def log(self, level: str, kind: str, message: str, data: dict[str, Any] | None = None) -> None:
         self.db.execute("INSERT INTO events(ts, level, kind, message, data) VALUES(?,?,?,?,?)",
                         (now_iso(), level, kind, message, dumps(data) if data else None))

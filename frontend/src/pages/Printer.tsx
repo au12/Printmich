@@ -5,6 +5,7 @@ import { useInvalidate, usePrinter, useSettings } from '../lib/hooks'
 import type { PrinterInfo } from '../lib/types'
 import { round } from '../lib/format'
 import { InkLevels } from '../components/Ink'
+import { InkPanel } from '../components/InkPanel'
 import { Empty, Field, Loading, Notice, Spinner, useToast } from '../components/ui'
 
 type Found = { name: string; uri: string; model: string; host: string; secure: boolean }
@@ -162,7 +163,11 @@ export function PrinterPage() {
               <div className="stack">
                 <div className="row"><span className={`dot ${!st.online ? 'err' : st.state === 'processing' ? 'busy' : st.state === 'stopped' ? 'warn' : 'ok'}`} />
                   <span className="h2">{!st.online ? 'Offline' : st.state === 'processing' ? 'Printing' : st.state === 'stopped' ? 'Needs attention' : 'Ready'}</span></div>
-                {(st.reasons ?? []).map((r) => <div key={r.keyword} className="small" style={{ color: r.severity === 'error' ? 'var(--err)' : 'var(--warn)' }}>{r.text}</div>)}
+                {(st.reasons ?? []).map((r) => (
+                  <div key={r.keyword} className="small" style={{ color: r.severity === 'error' ? 'var(--err)' : 'var(--warn)' }}>
+                    {r.text}{r.hint && <span className="faint" style={{ display: 'block', color: 'var(--text-2)' }}>{r.hint}</span>}
+                  </div>
+                ))}
                 {st.ready?.length ? (
                   <dl className="kv">
                     {st.ready.map((r, i) => (
@@ -175,11 +180,12 @@ export function PrinterPage() {
                 {!locked && <button className="btn btn-sm" style={{ alignSelf: 'flex-start' }} onClick={() => setChanging(true)}>Change printer</button>}
               </div>
               <div className="stack">
-                <div className="label">Ink</div>
-                <InkLevels markers={st.markers ?? []} />
+                <div className="label">{st.ink?.tracking ? 'Ink, estimated' : 'Ink'}</div>
+                <InkLevels markers={st.markers ?? []} tanks={st.ink?.tracking ? st.ink.tanks : undefined} />
               </div>
             </div>
           )}
+          <InkPanel />
           {jobs?.active?.length ? (
             <section className="section">
               <div className="section-head"><h2 className="h2">Jobs at the printer</h2></div>

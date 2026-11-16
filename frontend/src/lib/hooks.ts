@@ -2,8 +2,8 @@ import { useInfiniteQuery, useMutation, useQuery, useQueryClient } from '@tansta
 import { useEffect, useState } from 'react'
 import { api, postImage } from './api'
 import type {
-  Album, AppStatus, AssetSummary, Dashboard, EventItem, Paper, Person, Preset, PrinterInfo, PrintItem, RenderInfo,
-  Schedule, Settings, Stats,
+  Album, AppStatus, AssetSummary, Dashboard, EventItem, InkState, Paper, Person, Preset, PrinterInfo, PrintItem,
+  RenderInfo, Schedule, Settings, Stats,
 } from './types'
 
 export const useStatus = () => useQuery({ queryKey: ['status'], queryFn: () => api.get<AppStatus>('/api/status') })
@@ -16,6 +16,7 @@ export const useSchedules = () =>
   useQuery({ queryKey: ['schedules'], queryFn: () => api.get<Schedule[]>('/api/schedules'), refetchInterval: 15000 })
 export const usePrinter = () =>
   useQuery({ queryKey: ['printer'], queryFn: () => api.get<PrinterInfo>('/api/printer'), refetchInterval: 15000 })
+export const useInk = () => useQuery({ queryKey: ['ink'], queryFn: () => api.get<InkState>('/api/ink'), refetchInterval: 30000 })
 export const useStats = () => useQuery({ queryKey: ['stats'], queryFn: () => api.get<Stats>('/api/stats') })
 export const useEvents = (limit = 60) =>
   useQuery({ queryKey: ['events', limit], queryFn: () => api.get<EventItem[]>(`/api/events?limit=${limit}`), refetchInterval: 10000 })

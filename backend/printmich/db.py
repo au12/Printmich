@@ -42,6 +42,15 @@ MIGRATIONS = [
     );
     CREATE INDEX events_ts ON events(ts);
     """,
+    # v2: estimated ink per print and the refill ledger
+    """
+    ALTER TABLE prints ADD COLUMN ink TEXT;
+    CREATE TABLE ink_events (
+        id INTEGER PRIMARY KEY AUTOINCREMENT, at TEXT NOT NULL, ink TEXT NOT NULL, kind TEXT NOT NULL,
+        level_ml REAL, level_before_ml REAL, added_ml REAL, used_ml REAL, used_est_ml REAL, note TEXT
+    );
+    CREATE INDEX ink_events_at ON ink_events(at);
+    """,
 ]
 
 

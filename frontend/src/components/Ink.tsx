@@ -1,4 +1,4 @@
-import type { Marker } from '../lib/types'
+import type { InkTank, Marker } from '../lib/types'
 
 /** The ten PRO-310 inks — the only color the interface itself uses. */
 export const INKS = [
@@ -43,15 +43,55 @@ function shortName(name: string) {
   return words.map((w) => w[0]).join('').toUpperCase().slice(0, 3) || name.slice(0, 3)
 }
 
-export function InkLevels({ markers }: { markers: Marker[] }) {
+const INK_BY_KEY = Object.fromEntries(INKS.map((i) => [i.key, i]))
+
+/** Printmich's estimated tank levels (refilled or third-party ink). */
+function EstimatedLevels({ tanks }: { tanks: InkTank[] }) {
+  return (
+    <div className="ink-row est" role="list" aria-label="Estimated ink levels">
+      {tanks.map((t) => {
+        const known = t.percent != null
+        const lvl = known ? Math.max(0, Math.min(100, t.percent!)) : 0
+        const title = known ? `${t.name}: about ${t.level_ml?.toFixed(1)} ml (${Math.round(lvl)}%), estimated` : `${t.name}: not tracked yet`
+        return (
+          <div className={`ink ${t.status}${t.ink.endsWith('BK') ? ' blk' : ''}`} key={t.ink} role="listitem" title={title}>
+            <div className="tank">
+              <div className={`fill${t.status === 'low' || t.status === 'empty' ? ' low' : ''}`} style={{ height: `${lvl}%`, background: INK_BY_KEY[t.ink]?.color ?? t.color }} />
+            </div>
+            <span className="lbl">{t.ink}</span>
+          </div>
+        )
+      })}
+    </div>
+  )
+}
+
+/** Estimated ink a print used, as one bar split by ink. */
+export function InkUsage({ ink }: { ink: Record<string, number> }) {
+  const parts = INKS.map((i) => ({ ...i, ml: ink[i.key] ?? 0 })).filter((p) => p.ml > 0)
+  const total = parts.reduce((s, p) => s + p.ml, 0)
+  if (!total) return null
+  return (
+    <span className="ink-usage" title={parts.map((p) => `${p.name} ${p.ml.toFixed(3)} ml`).join('\n')}>
+      <span className="bar" aria-hidden="true">
+        {parts.map((p) => <i key={p.key} style={{ width: `${(p.ml / total) * 100}%`, background: p.color }} />)}
+      </span>
+      <span className="num">≈ {total < 1 ? total.toFixed(2) : total.toFixed(1)} ml</span>
+    </span>
+  )
+}
+
+export function InkLevels({ markers, tanks }: { markers: Marker[]; tanks?: InkTank[] }) {
+  if (tanks?.length) return <EstimatedLevels tanks={tanks} />
   if (!markers.length) return <div className="faint small">The printer doesn't report ink levels.</div>
   return (
     <div className="ink-row" role="list" aria-label="Ink levels">
       {markers.map((m) => {
         const level = m.level < 0 ? null : Math.max(0, Math.min(100, (m.level / (m.high || 100)) * 100))
         const low = level != null && m.level <= m.low
+        const key = shortName(m.name)
         return (
-          <div className="ink" key={m.name} role="listitem" title={`${m.name}: ${level == null ? 'unknown' : `${Math.round(level)}%`}`}>
+          <div className={`ink${key === 'MBK' || key === 'PBK' ? ' blk' : ''}`} key={m.name} role="listitem" title={`${m.name}: ${level == null ? 'unknown' : `${Math.round(level)}%`}`}>
             <div className="tank">
               <div className={`fill${low ? ' low' : ''}`} style={{ height: `${level ?? 0}%`, background: m.color }} />
             </div>

@@ -306,6 +306,16 @@ class WritebackSettings(Model):
 class CostSettings(Model):
     currency: str = "$"
     ink_per_sq_in: float = Field(0.0, ge=0, le=10)
+    ink_per_ml: float = Field(0.0, ge=0, le=100)   # used instead of ink_per_sq_in when set
+
+
+class InkSettings(Model):
+    levels: Literal["printer", "estimate"] = "printer"   # where ink levels come from
+    tank_ml: float = Field(14.4, gt=0, le=1000)          # PFI-5100 / PFI-300 tanks hold 14.4 ml
+    remind_below: int = Field(20, ge=0, le=90)           # % — "refill soon" reminder
+    hold_below: int = Field(3, ge=0, le=50)              # % — scheduled prints wait for a refill below this
+    remind_days: int = Field(0, ge=0, le=365)            # periodic "check the ink" reminder; 0 = off
+    hide_printer_warnings: bool = True                   # ignore the chips' low/empty warnings while estimating
 
 
 class Settings(Model):
@@ -319,6 +329,7 @@ class Settings(Model):
     notifications: NotificationSettings = Field(default_factory=NotificationSettings)
     writeback: WritebackSettings = Field(default_factory=WritebackSettings)
     cost: CostSettings = Field(default_factory=CostSettings)
+    ink: InkSettings = Field(default_factory=InkSettings)
     retry_minutes: int = Field(5, ge=1, le=120)
     retry_hours: int = Field(6, ge=0, le=72)
     password_hash: str = ""

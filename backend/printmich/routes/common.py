@@ -54,6 +54,7 @@ def print_out(app: App, row: dict[str, Any]) -> dict[str, Any]:
         "notes": r.get("notes") or [],
         "copies": row.get("copies") or 1,
         "cost": row.get("cost"),
+        "ink": app.ink.calibrated(row.get("ink")),
         "ipp_job_id": row.get("ipp_job_id"),
         "hidden": bool(row.get("hidden")),
         "thumb": f"/api/prints/{pid}/thumb" if has_thumb else None,

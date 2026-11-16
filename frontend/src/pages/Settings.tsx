@@ -183,14 +183,15 @@ export function SettingsPage() {
             <Field label="If the printer is unreachable, retry every"><NumberInput value={s.retry_minutes} min={1} max={120} suffix="min" onChange={(v) => save({ retry_minutes: v })} /></Field>
             <Field label="Give up after"><NumberInput value={s.retry_hours} min={0} max={72} suffix="hours" onChange={(v) => save({ retry_hours: v })} /></Field>
             <Field label="Currency symbol"><input className="input" defaultValue={s.cost.currency} onBlur={(e) => save({ cost: { ...s.cost, currency: e.target.value || '$' } })} /></Field>
-            <Field label="Ink cost per square inch" hint="Optional estimate; paper prices are set per paper."><NumberInput value={s.cost.ink_per_sq_in} min={0} max={5} step={0.005} onChange={(v) => save({ cost: { ...s.cost, ink_per_sq_in: v } })} /></Field>
+            <Field label="Ink cost per ml" hint="Priced from each print's estimated ink. Paper prices are set per paper."><NumberInput value={s.cost.ink_per_ml} min={0} max={100} step={0.01} onChange={(v) => save({ cost: { ...s.cost, ink_per_ml: v } })} /></Field>
+            {!s.cost.ink_per_ml && <Field label="Or ink cost per square inch" hint="A flat rate, used when cost per ml is 0."><NumberInput value={s.cost.ink_per_sq_in} min={0} max={5} step={0.005} onChange={(v) => save({ cost: { ...s.cost, ink_per_sq_in: v } })} /></Field>}
           </div>
         </section>
 
         <section className="panel stack">
           <h2 className="h2">Display</h2>
           <div className="grid-2">
-            <Field label="Units"><Segmented value={s.units} onChange={(v) => save({ units: v })} options={[{ value: 'in', label: 'Inches' }, { value: 'mm', label: 'Millimetres' }]} /></Field>
+            <Field label="Units"><Segmented value={s.units} onChange={(v) => save({ units: v })} options={[{ value: 'in', label: 'Inches' }, { value: 'mm', label: 'Millimeters' }]} /></Field>
             <Field label="Wall title"><input className="input" value={wallTitle} onChange={(e) => setWallTitle(e.target.value)} onBlur={() => wallTitle !== s.wall_title && save({ wall_title: wallTitle })} /></Field>
           </div>
         </section>

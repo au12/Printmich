@@ -297,6 +297,7 @@ export interface PrintItem {
   notes: string[]
   copies: number
   cost: number | null
+  ink: Record<string, number> | null
   ipp_job_id: number | null
   hidden: boolean
   thumb: string | null
@@ -314,11 +315,59 @@ export interface Marker {
   type: string
 }
 
+export interface InkTank {
+  ink: string
+  name: string
+  color: string
+  capacity_ml: number
+  level_ml: number | null
+  percent: number | null
+  since: string | null
+  since_kind?: 'refill' | 'set'
+  used_ml: number
+  prints: number
+  days: number | null
+  status: 'ok' | 'low' | 'empty' | 'unknown'
+  factor: number
+  calibrations: number
+}
+
+export interface InkSettings {
+  levels: 'printer' | 'estimate'
+  tank_ml: number
+  remind_below: number
+  hold_below: number
+  remind_days: number
+  hide_printer_warnings: boolean
+}
+
+export interface InkEvent {
+  id: number
+  at: string
+  ink: string
+  kind: 'refill' | 'set'
+  level_ml: number | null
+  level_before_ml: number | null
+  added_ml: number | null
+  used_ml: number | null
+  used_est_ml: number | null
+  note: string | null
+}
+
+export interface InkState {
+  settings: InkSettings
+  tanks: InkTank[]
+  events: InkEvent[]
+  printer: Marker[]
+  inks: { ink: string; name: string; color: string }[]
+}
+
 export interface PrinterStatus {
   configured: boolean
   online?: boolean
   state?: string
-  reasons?: { keyword: string; base: string; severity: string; text: string }[]
+  reasons?: { keyword: string; base: string; severity: string; text: string; hint?: string }[]
+  ink?: { mode: 'estimate'; tanks: InkTank[]; tracking: boolean }
   message?: string
   markers?: Marker[]
   ready?: {
@@ -409,7 +458,8 @@ export interface Settings {
     attach_preview: boolean
   }
   writeback: { album_enabled: boolean; album_name: string; tag_enabled: boolean; tag_name: string }
-  cost: { currency: string; ink_per_sq_in: number }
+  cost: { currency: string; ink_per_sq_in: number; ink_per_ml: number }
+  ink: InkSettings
   retry_minutes: number
   retry_hours: number
   onboarded: boolean

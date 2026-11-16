@@ -27,7 +27,8 @@ It talks to the PRO-310 the way AirPrint does (IPP Everywhere), so it also works
 - **Layouts that look printed, not stretched.** Borders and mats, keylines, captions from photo metadata in EB Garamond, Inter or a monospace face, face-aware cropping with a click-to-set focus point, and automatic rotation to the sheet.
 - **A wall of everything printed.** A quiet masonry wall in the spirit of [ChronoFrame](https://github.com/HoshinoSuzumi/chronoframe), with a full-screen viewer that shows each photo as shot or as printed on its paper, plus print details, EXIF and a histogram.
 - **Read-only Immich access.** A scoped API key with read permissions is enough. Printmich checks the key and tells you exactly which permissions are missing.
-- **Printer awareness.** Ink levels for all ten LUCIA PRO II tanks, paper loaded in each feed, alerts, and an optional check that the right paper is loaded before a scheduled print. Jobs that hit an offline printer are retried.
+- **Printer awareness.** Ink levels for all ten LUCIA PRO II tanks, paper loaded in each feed, alerts, and an optional check that the right paper is loaded before a scheduled print. Jobs that hit an offline printer are retried, and a job that stops at the printer (out of ink or paper, a jam) waits there while Printmich tells you what to do.
+- **Refilled ink, tracked.** Refilled and third-party tanks stop reporting their level, so Printmich estimates every tank from the pages it prints, reminds you before one runs low, and holds scheduled prints rather than run a tank dry. Log how much ink each refill takes and the estimate calibrates itself.
 - **A virtual PRO-310.** Try everything without wasting paper: the virtual printer accepts real jobs and saves each page as an image.
 - **Notifications** through [Apprise](https://github.com/caronc/apprise) (ntfy, Pushover, Discord, email, Home Assistant and 100+ more), with a preview of the upcoming photo attached.
 - **Works on your phone.** The whole UI is responsive and can be added to your home screen.
@@ -139,7 +140,22 @@ Each paper carries a calibration that every preset using it inherits:
 3. **Print a color pattern** if you're unsure which way to go: one of your photos in a grid of variations, like Canon's pattern print. Pick the best tile and apply it.
 4. **For measured color**, print a profiling target with color management off, build an ICC profile with your measurement device, and upload it. Presets can then use the custom profile.
 
-### 4. A schedule
+### 4. Refilled or third-party ink (optional)
+
+A Canon tank's chip counts the ink it shipped with, not what's in it. When you install a tank that has run empty before, such as a refilled one, the PRO-310 stops with **support code 1699** until you **hold its Stop button for 5 seconds**. Canon only offers this as a button press on the printer, and IPP has no command for it, so Printmich can't do it for you. The printer remembers it for that tank, so expect it once per tank rather than at every print. After that, the printer stops tracking that tank and won't warn you before it runs dry.
+
+Printmich covers both halves:
+
+- If a print stops at the printer, Printmich keeps the job, sends you a notification saying what to do, and the print finishes on its own once the printer is ready. Nothing is lost or reprinted.
+- On **Printer → Ink**, switch to **Printmich estimate** and start from the printer's last readings or from full tanks. Each print's ink is estimated from the finished page (light and dark inks, gray and black for neutrals, red, chroma optimizer on glossy paper, plus each tank's share of head cleaning), and the tanks count down from there.
+- **Log a refill** when you top up. If you enter how much ink went in (syringe marks, or weigh the tank before and after; 1 g is about 1 ml), Printmich compares it with its estimate and corrects that tank from then on.
+- You get a reminder when a tank drops below a level you choose, and optionally every few days. Scheduled prints wait when a tank is nearly empty; release one from the queue to print it anyway.
+
+The estimate starts from Canon's published PRO-310 yields, which assume continuous printing. A print every day or two spends more ink on cleaning, so early estimates may run optimistic until you've logged a measured refill or two.
+
+<img src="docs/images/desktop-ink.jpg" alt="Estimated ink levels with a refill log">
+
+### 5. A schedule
 
 The included **Photo of the Day** schedule is off until you turn it on. Choose:
 

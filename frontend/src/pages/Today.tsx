@@ -185,6 +185,8 @@ function PrinterStrip({ d }: { d: Dashboard }) {
     </Empty>
   }
   const loaded = p.ready?.[0]
+  const tracking = !!p.ink?.tracking
+  const refill = tracking ? p.ink!.tanks.filter((t) => t.status === 'low' || t.status === 'empty') : []
   const cls = !p.online ? 'err' : d.queue.length ? 'busy' : p.state === 'stopped' ? 'warn' : 'ok'
   const text = !p.online ? 'Offline' : d.queue.length ? 'Printing' : p.state === 'stopped' ? 'Needs attention' : 'Ready'
   return (
@@ -194,11 +196,20 @@ function PrinterStrip({ d }: { d: Dashboard }) {
         {p.online && loaded?.size_label && (
           <div className="small muted">Loaded: <span style={{ color: 'var(--text)' }}>{loaded.size_label}{loaded.type_label ? `, ${loaded.type_label.toLowerCase()}` : ''}</span>{loaded.source_label ? ` in the ${loaded.source_label.toLowerCase()}` : ''}</div>
         )}
-        {(p.reasons ?? []).map((r) => <div key={r.keyword} className="small" style={{ color: r.severity === 'error' ? 'var(--err)' : 'var(--warn)' }}>{r.text}</div>)}
+        {(p.reasons ?? []).map((r) => (
+          <div key={r.keyword} className="small" style={{ color: r.severity === 'error' ? 'var(--err)' : 'var(--warn)' }}>
+            {r.text}{r.hint && <span style={{ display: 'block', color: 'var(--text-2)' }}>{r.hint}</span>}
+          </div>
+        ))}
         {!p.online && <div className="small muted">{p.error}</div>}
+        {refill.length > 0 && (
+          <div className="small" style={{ color: refill.some((t) => t.status === 'empty') ? 'var(--err)' : 'var(--warn)' }}>
+            Refill soon: {refill.map((t) => `${t.name} ${Math.round(t.percent ?? 0)}%`).join(', ')}. <Link to="/printer#ink">Log a refill</Link>
+          </div>
+        )}
         <Link to="/printer" className="small faint">Printer details</Link>
       </div>
-      <InkLevels markers={p.markers ?? []} />
+      <InkLevels markers={p.markers ?? []} tanks={tracking ? p.ink!.tanks : undefined} />
     </div>
   )
 }

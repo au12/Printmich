@@ -45,6 +45,22 @@ REASON_TEXT = {
     "other": "Printer needs attention",
 }
 
+# What to do about an alert that stops printing (shown in the UI and in notifications).
+REASON_HINT = {
+    "marker-supply-empty": "Replace the tank. If it's a refilled tank, hold the printer's Stop button for 5 seconds "
+                           "to keep printing (support code 1699); the printer remembers this for that tank.",
+    "media-empty": "Load paper, then follow the printer's screen.",
+    "media-needed": "Load paper, then follow the printer's screen.",
+    "media-jam": "Clear the jam, then follow the printer's screen.",
+    "media-misfeed": "Reload the paper, then follow the printer's screen.",
+    "media-mismatch": "Load the paper the job asks for, or follow the printer's screen.",
+    "cover-open": "Close the cover to continue.",
+    "door-open": "Close the cover to continue.",
+    "marker-waste-full": "Replace the maintenance cartridge.",
+    "output-tray-missing": "Open the output tray.",
+    "paused": "Resume the printer from its screen.",
+}
+
 
 def first(attrs: dict[str, list[Any]], name: str, default: Any = None) -> Any:
     v = attrs.get(name)
@@ -72,8 +88,10 @@ def describe_reasons(reasons: list[str]) -> list[dict[str, str]]:
         if r == "none":
             continue
         base, sev = split_reason(r)
-        out.append({"keyword": r, "base": base, "severity": sev,
-                    "text": REASON_TEXT.get(base, media.humanize_keyword(base))})
+        item = {"keyword": r, "base": base, "severity": sev, "text": REASON_TEXT.get(base, media.humanize_keyword(base))}
+        if sev == "error" and base in REASON_HINT:
+            item["hint"] = REASON_HINT[base]
+        out.append(item)
     return out
 
 

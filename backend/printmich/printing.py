@@ -170,13 +170,14 @@ class PrintManager:
         return True
 
     async def release(self, pid: str) -> bool:
-        """Print a held job anyway (paper mismatch override)."""
+        """Print a held job anyway (overrides the paper and ink checks)."""
         row = self.app.store.print_row(pid)
         if not row or row["status"] != "held":
             return False
         render_meta = row.get("render") or {}
         req = render_meta.get("request") or {}
         req["skip_verify"] = True
+        req["skip_ink"] = True
         render_meta["request"] = req
         self.app.store.update_print(pid, status="queued", status_detail="Released", render=render_meta)
         await self.queue.put(pid)
@@ -300,9 +301,18 @@ class PrintManager:
             (prints_dir / f"{pid}.thumb.jpg").write_bytes(tb)
         except Exception as e:
             log.warning("thumbnail failed: %s", e)
+        ink_ml: dict[str, float] | None = None
+        if page_path.exists():
+            try:
+                ink_ml = await asyncio.to_thread(self.app.ink.estimate_print, page_path, plan.page_w_mm,
+                                                 plan.page_h_mm, black_ink=paper.black_ink,
+                                                 copies=max(1, preset.output.copies))
+            except Exception as e:
+                log.warning("ink estimate failed: %s", e)
         meta.update({"plan": plan.describe(), **result.meta(), "notes": notes + plan.warnings + result.warnings})
         store.update_print(pid, asset=summary.model_dump() if summary else None, render=meta, thumb_w=thumb_w,
-                           thumb_h=thumb_h, started_at=now_iso(), cost=self._cost(paper, preset, result.geometry))
+                           thumb_h=thumb_h, started_at=now_iso(), ink=ink_ml,
+                           cost=self._cost(paper, preset, result.geometry, ink_ml))
 
         # paper verification for scheduled prints
         if req.get("verify_paper") and not req.get("skip_verify"):
@@ -315,6 +325,16 @@ class PrintManager:
                 self._set(pid, "held", msg)
                 store.log("warning", "paper", msg, {"print_id": pid})
                 await self.app.notifier.send("Printmich: paper check", msg, kind="warning", event="error")
+                return
+
+        # estimated ink: scheduled prints wait for a refill rather than run a tank dry
+        if row.get("source") == "schedule" and not req.get("skip_ink"):
+            reason = self.app.ink.hold_reason(ink_ml)
+            if reason:
+                self._set(pid, "held", reason)
+                store.log("warning", "ink", reason, {"print_id": pid})
+                await self.app.notifier.send("Printmich: print waiting for ink", reason, kind="warning",
+                                             event="supplies")
                 return
 
         self._set(pid, "sending", "Sending to the printer")
@@ -334,8 +354,16 @@ class PrintManager:
             store.update_print(pid, render=meta)
         self._set(pid, "printing", "Printing", ipp_job_id=job_id, printer=self.app.printer.uri)
         store.log("info", "print", f"Sent {title} ({plan.page_label}, {paper.name})", {"print_id": pid})
-        state, detail = await self._monitor(pid, client, job_id)
-        await self._finish(pid, state, detail)
+        # Follow the job in the background so a printer waiting for a hand doesn't hold up the queue.
+        self._spawn(self._watch(pid, client, job_id))
+
+    async def _watch(self, pid: str, client: Any, job_id: int | None) -> None:
+        try:
+            state, detail = await self._monitor(pid, client, job_id)
+            await self._finish(pid, state, detail)
+        except Exception as e:
+            log.exception("watching print %s failed", pid)
+            self._fail(pid, str(e))
 
     async def _maybe_retry(self, pid: str, row: dict[str, Any], req: dict[str, Any], error: str) -> bool:
         """Scheduled prints wait for an offline printer; manual prints fail fast."""
@@ -366,14 +394,19 @@ class PrintManager:
         return True
 
     async def _monitor(self, pid: str, client: Any, job_id: int | None) -> tuple[str, str]:
+        """Follow a job until it finishes. A job stopped at the printer (ink out, no paper, jam) is kept
+        alive for up to three days and the user is told what to do; printing resumes on its own."""
         if job_id is None:
             return "completed", "Sent (the printer didn't report a job id)"
         started = time.time()
+        busy = 0.0  # seconds spent printing normally; times out after 45 minutes
         failures = 0
         last = ""
+        notified = ""
         virtual = self.app.printer.is_virtual()
-        while time.time() - started < 45 * 60:
-            await asyncio.sleep(1.5 if virtual else 4)
+        while busy < 45 * 60 and time.time() - started < 72 * 3600:
+            interval = 1.5 if virtual else 4 if time.time() - started < 600 else 15
+            await asyncio.sleep(interval)
             row = self.app.store.print_row(pid)
             if row and row["status"] == "canceled":
                 return "canceled", "Canceled"
@@ -382,6 +415,7 @@ class PrintManager:
                 failures = 0
             except IppError:
                 failures += 1
+                busy += interval
                 if failures >= 4:
                     st = await self.app.printer.status(max_age=0)
                     if st.get("state") == "idle":
@@ -396,10 +430,23 @@ class PrintManager:
             if state == 7:
                 return "canceled", "Canceled at the printer"
             st = await self.app.printer.status(max_age=6)
-            msgs = [r["text"] for r in st.get("reasons", []) if r.get("severity") in ("error", "warning")]
-            detail = msgs[0] if msgs else ("Printing" if state == 5 else "Queued at the printer")
-            if state == 6 and not msgs:
-                detail = "Printer paused — check the printer's screen"
+            alerts = [r for r in st.get("reasons", []) if r.get("severity") == "error"]
+            stuck = state == 6 or st.get("state") == "stopped" or (state in (3, 4) and bool(alerts))
+            if stuck:
+                a = alerts[0] if alerts else None
+                detail = (f"Waiting at the printer: {a['text']}. {a.get('hint', '')}".strip() if a
+                          else "Waiting at the printer: check the printer's screen.")
+                if detail != notified:
+                    notified = detail
+                    row = self.app.store.print_row(pid)
+                    self.app.store.log("warning", "printer", detail, {"print_id": pid})
+                    await self.app.notifier.send("Printmich: printer needs attention",
+                                                 f"{self._title(row)}\n{detail}\nIt will finish printing once the "
+                                                 "printer is ready.", kind="warning", event="error")
+            else:
+                busy += interval
+                msgs = [r["text"] for r in st.get("reasons", []) if r.get("severity") == "warning"]
+                detail = msgs[0] if msgs else ("Printing" if state == 5 else "Queued at the printer")
             if detail != last:
                 self._set(pid, "printing", detail)
                 last = detail
@@ -426,6 +473,8 @@ class PrintManager:
                     "Printmich: printed", f"{name}\n{row.get('preset_name', '')}", kind="success", event="print",
                     attach=self.app.cfg.prints_dir / f"{pid}.page.jpg")
                 await self._writeback(row)
+            if row.get("ink"):
+                await self.app.ink.check(force=True)
         elif state == "canceled":
             store.update_print(pid, status="canceled", status_detail=detail, completed_at=now_iso())
         else:
@@ -448,14 +497,19 @@ class PrintManager:
             self._album_id = None
             self.app.store.log("warning", "immich", f"Write-back to Immich failed: {e}")
 
-    def _cost(self, paper: Paper, preset: Preset, geometry: dict[str, Any]) -> float | None:
+    def _cost(self, paper: Paper, preset: Preset, geometry: dict[str, Any],
+              ink_ml: dict[str, float] | None = None) -> float | None:
         copies = max(1, preset.output.copies)
         cost = 0.0
         sheet = paper.cost_per_sheet.get(preset.output.media_size)
         if sheet:
             cost += sheet * copies
-        ink = self.app.store.settings().cost.ink_per_sq_in
-        if ink and geometry.get("photo_mm"):
+        prices = self.app.store.settings().cost
+        ink = prices.ink_per_sq_in
+        per_ml = prices.ink_per_ml
+        if per_ml and ink_ml:
+            cost += per_ml * sum((self.app.ink.calibrated(ink_ml) or {}).values())
+        elif ink and geometry.get("photo_mm"):
             w, h = geometry["photo_mm"]
             cost += ink * (w * h / 645.16) * copies
         return round(cost, 3) if cost else None

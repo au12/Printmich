@@ -9,6 +9,7 @@ from .config import AppConfig
 from .db import Database
 from .defaults import default_presets, default_schedule
 from .immich import ImmichClient, ImmichError
+from .ink import InkTracker
 from .notify import Notifier
 from .picker import Picker
 from .printer import PrinterService
@@ -31,6 +32,7 @@ class App:
         self.picker = Picker(self)
         self.scheduler = Scheduler(self)
         self.notifier = Notifier(self)
+        self.ink = InkTracker(self)
         self._immich: ImmichClient | None = None
         self._immich_key: tuple[str, str] | None = None
         try:
@@ -70,6 +72,7 @@ class App:
             if s.enabled and not s.next_run_at:
                 self.scheduler.reschedule(s)
         await self.prints.start()
+        self.prints._spawn(self.ink.backfill())
         await self.scheduler.start()
 
     async def stop(self) -> None:

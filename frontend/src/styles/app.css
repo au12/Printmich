@@ -354,6 +354,32 @@ a { color: inherit; }
 .ink .fill { position: absolute; left: 0; right: 0; bottom: 0; border-radius: 0 0 3px 3px; }
 .ink .fill.low { animation: pulse 1.6s ease-in-out infinite; }
 .ink .lbl { font-size: 10.5px; color: var(--text-3); font-stretch: 90%; }
+.ink-row.est .tank { border-style: dashed; }
+.ink.unknown .lbl { opacity: 0.5; }
+.ink.empty .lbl { color: var(--err); }
+.ink.low .lbl { color: var(--warn); }
+.ink-usage { display: inline-flex; align-items: center; gap: 10px; }
+.ink-usage .bar { display: inline-flex; width: 96px; height: 8px; border-radius: 2px; overflow: hidden; background: var(--g3); }
+.ink-usage .bar i { display: block; height: 100%; min-width: 1px; }
+.tank-list { display: grid; gap: 2px; }
+.tank-line { display: grid; grid-template-columns: 14px minmax(150px, 1.2fr) minmax(100px, 2fr) 58px 64px minmax(140px, 1fr); gap: 14px; align-items: center; padding: 7px 0; border-top: 1px solid var(--line); }
+.tank-line:first-child { border-top: 0; }
+.tank-line .sw { width: 12px; height: 12px; border-radius: 3px; box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.15); }
+.tank-line .meter { height: 6px; border-radius: 3px; background: var(--g3); overflow: hidden; }
+.tank-line .meter i { display: block; height: 100%; border-radius: 3px; }
+.tank-line .pct { justify-self: end; }
+.tank-line .ml { text-align: right; }
+.tank-line .meta { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.blk .sw, .blk .meter i, .ink.blk .fill { box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.34); }
+@media (max-width: 760px) {
+  .tank-line { grid-template-columns: 12px minmax(0, 1fr) 52px 56px; row-gap: 6px; }
+  .tank-line .meter { grid-column: 2 / -1; grid-row: 2; }
+  .tank-line .meta { display: none; }
+}
+.chip-toggle { display: inline-flex; align-items: center; gap: 7px; padding: 6px 10px; border-radius: 999px; border: 1px solid var(--line-strong); background: transparent; color: var(--text-2); font: inherit; font-size: 13px; cursor: pointer; }
+.chip-toggle[aria-pressed="true"] { background: var(--g3); color: var(--text); border-color: var(--text-3); }
+.chip-toggle .sw { width: 10px; height: 10px; border-radius: 2px; }
+.refill-amounts { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 10px; }
 
 .activity { display: flex; flex-direction: column; }
 .activity-item { display: grid; grid-template-columns: 10px 1fr auto; gap: 12px; align-items: baseline; padding: 9px 0; border-top: 1px solid var(--line); font-size: 13px; }

@@ -101,7 +101,7 @@ async def get_settings(app=Depends(get_app)) -> dict[str, Any]:
 
 
 ALLOWED_SETTINGS = {"immich_url", "immich_api_key", "immich_public_url", "printer_uri", "printer_name", "units",
-                    "theme", "notifications", "writeback", "cost", "retry_minutes", "retry_hours", "onboarded",
+                    "theme", "notifications", "writeback", "cost", "ink", "retry_minutes", "retry_hours", "onboarded",
                     "wall_title"}
 
 

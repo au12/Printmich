@@ -112,6 +112,10 @@ class Scheduler:
     async def tick(self) -> None:
         store = self.app.store
         now = now_utc()
+        try:
+            await self.app.ink.check()
+        except Exception:
+            log.exception("ink reminder check failed")
         for s in store.schedules():
             if not s.enabled or s.id in self._busy:
                 continue

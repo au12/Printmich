@@ -75,6 +75,16 @@ def run() -> None:
             page.goto(f"{BASE}/printer")
             page.wait_for_selector(".ink-row", timeout=20000)
             shoot(page, "desktop-printer", 1800)
+        if want("ink"):
+            page.goto(f"{BASE}/printer#ink")
+            page.wait_for_selector(".tank-list", timeout=20000)
+            page.wait_for_timeout(800)
+            page.evaluate("document.getElementById('ink').scrollIntoView({block: 'start'})")
+            page.evaluate("window.scrollBy(0, -24)")
+            shoot(page, "desktop-ink", 1200)
+            page.get_by_role("button", name="Log a refill").click()
+            page.wait_for_selector(".refill-amounts", timeout=20000)
+            shoot(page, "desktop-ink-refill", 900)
         if want("settings"):
             page.goto(f"{BASE}/settings")
             page.wait_for_selector(".panel", timeout=20000)

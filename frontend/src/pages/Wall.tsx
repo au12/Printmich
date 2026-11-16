@@ -8,7 +8,7 @@ import { camera, exposureParts, fmtDate, fmtDateTime, money, photoTitle, place, 
 import { Histogram } from '../components/Histogram'
 import { PrintSheet } from '../components/PrintSheet'
 import { Dialog, Field, Loading, Segmented, Select, Spinner, useToast } from '../components/ui'
-import { InkMark } from '../components/Ink'
+import { InkMark, InkUsage } from '../components/Ink'
 
 function useColumns(ref: React.RefObject<HTMLDivElement | null>) {
   const [cols, setCols] = useState(4)
@@ -158,6 +158,7 @@ function Viewer({ items, index, onIndex, onClose, onHide }: { items: PrintItem[]
             {p.plan?.summary && (<><dt>Output</dt><dd>{p.plan.summary}</dd></>)}
             {p.effective_ppi ? (<><dt>Detail</dt><dd className="num">{Math.round(p.effective_ppi)} ppi</dd></>) : null}
             {p.copies > 1 && (<><dt>Copies</dt><dd>{p.copies}</dd></>)}
+            {p.ink && Object.keys(p.ink).length ? (<><dt>Ink</dt><dd><InkUsage ink={p.ink} /></dd></>) : null}
             {p.cost ? (<><dt>Cost</dt><dd>{money(p.cost)}</dd></>) : null}
             {p.source === 'schedule' && (<><dt>Chosen by</dt><dd>Schedule</dd></>)}
           </dl>

@@ -18,7 +18,7 @@ from .imaging.render import RenderError
 from .immich import ImmichError
 from .ipp.client import IppError
 from .picker import NoCandidates
-from .routes import immich, library, printer, prints, schedules, system, tools
+from .routes import immich, ink, library, printer, prints, schedules, system, tools
 from .state import App
 
 log = logging.getLogger("printmich")
@@ -28,6 +28,9 @@ def create_app(cfg: AppConfig | None = None) -> FastAPI:
     cfg = cfg or load_config()
     logging.basicConfig(level=getattr(logging, cfg.log_level.upper(), logging.INFO),
                         format="%(asctime)s %(levelname)-7s %(name)s: %(message)s")
+    # libvips narrates every operation at INFO; keep it to warnings unless debugging.
+    for noisy in ("pyvips", "httpx", "httpx2", "httpcore"):
+        logging.getLogger(noisy).setLevel(logging.DEBUG if cfg.log_level.lower() == "debug" else logging.WARNING)
 
     @asynccontextmanager
     async def lifespan(fa: FastAPI) -> AsyncIterator[None]:
@@ -63,7 +66,7 @@ def create_app(cfg: AppConfig | None = None) -> FastAPI:
     app.add_exception_handler(ValidationError, handler(422, "validation"))
 
     for r in (system.router, immich.router, printer.router, library.router, prints.router, schedules.router,
-              tools.router):
+              tools.router, ink.router):
         app.include_router(r)
 
     static: Path = cfg.static_dir

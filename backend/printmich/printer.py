@@ -157,7 +157,15 @@ class PrinterService:
             "accepting": caps.accepting, "markers": [asdict(m) for m in caps.markers], "ready": caps.ready,
         }
 
+    def last_markers(self) -> list[dict[str, Any]]:
+        """Ink levels from the most recent status, as the printer reported them."""
+        return list((self._status or {}).get("markers", []))
+
     async def status(self, max_age: float = 8.0) -> dict[str, Any]:
+        """Printer state, alerts, loaded paper and ink — estimated ink when the user tracks refills."""
+        return self.app.ink.decorate(await self._status_now(max_age))
+
+    async def _status_now(self, max_age: float) -> dict[str, Any]:
         if not self.configured:
             return {"configured": False}
         if self._status is not None and time.time() - self._status_at < max_age:
