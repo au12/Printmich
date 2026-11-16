@@ -1,0 +1,32 @@
+[project]
+name = "printmich"
+version = "1.0.0"
+description = "Scheduled photo prints from Immich to a Canon imagePROGRAF PRO-310 or any IPP Everywhere printer."
+readme = "../README.md"
+license = "MIT"
+requires-python = ">=3.12"
+
+[tool.pytest.ini_options]
+pythonpath = ["."]
+testpaths = ["tests"]
+filterwarnings = ["ignore::DeprecationWarning"]
+
+[tool.ruff]
+line-length = 120
+target-version = "py312"
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I", "UP", "B", "SIM", "ASYNC", "RUF"]
+ignore = [
+  "B008",    # FastAPI dependencies are declared as default arguments
+  "RUF001",  # typographic characters (×, –, ’) in user-facing strings are intentional
+  "RUF002",
+  "RUF003",
+  "SIM102",  # nested ifs are kept where each condition carries its own comment
+  "SIM105",  # try/except/pass reads clearer than contextlib.suppress in a few spots
+  "SIM108",
+  "E501",    # long lines are left to judgment (data tables, f-strings)
+  "ASYNC109", # discovery takes an explicit browse timeout
+  "ASYNC230", # small local file reads/writes are fine on the event loop
+  "ASYNC240",
+]

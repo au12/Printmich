@@ -1,0 +1,13 @@
+# Runtime dependencies (pinned to the tested set; the Docker image installs exactly these).
+apprise==2.2.0
+croniter==7.0.0
+fastapi==0.163.1
+httpx==0.28.1
+itsdangerous==2.2.0
+numpy==2.5.3
+pydantic==2.13.5
+python-multipart==0.0.32
+pyvips==3.2.0
+tzdata==2026.6
+uvicorn==0.54.0
+zeroconf==0.154.0
