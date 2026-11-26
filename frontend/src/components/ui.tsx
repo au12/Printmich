@@ -1,6 +1,7 @@
-import { createContext, useCallback, useContext, useEffect, useId, useRef, useState, type ReactNode } from 'react'
+import { createContext, useCallback, useContext, useEffect, useId, useRef, useState, type CSSProperties, type ImgHTMLAttributes, type ReactNode } from 'react'
 import { createPortal } from 'react-dom'
 import { AlertTriangle, ChevronDown, CircleAlert, CircleCheck, Info, X } from 'lucide-react'
+import { InkLoader } from './Ink'
 
 /* ---------------------------------------------------------------- fields */
 
@@ -234,7 +235,7 @@ export function ToastProvider({ children }: { children: ReactNode }) {
       {createPortal(
         <div className="toasts" aria-live="polite">
           {items.map((t) => (
-            <div key={t.id} className={`toast ${t.kind}`}>
+            <div key={t.id} className={`toast ${t.kind}`} role={t.kind === 'err' ? 'alert' : 'status'} style={{ ['--life' as string]: t.kind === 'err' ? '7s' : '3.8s' } as CSSProperties}>
               {t.kind === 'ok' ? <CircleCheck /> : t.kind === 'err' ? <CircleAlert /> : <Info />}
               <div>{t.text}</div>
             </div>
@@ -267,16 +268,50 @@ export function Spinner({ size = 18 }: { size?: number }) {
   return <span className="spinner" style={{ width: size, height: size }} aria-label="Loading" />
 }
 
-export function Empty({ title, children, action }: { title: ReactNode; children?: ReactNode; action?: ReactNode }) {
+export function Empty({ title, children, action, icon }: { title: ReactNode; children?: ReactNode; action?: ReactNode; icon?: ReactNode }) {
   return (
     <div className="empty">
-      <div className="h2">{title}</div>
-      {children && <div className="prose">{children}</div>}
-      {action}
+      {icon && <span className="empty-icon">{icon}</span>}
+      <div className="empty-body">
+        <div className="h2">{title}</div>
+        {children && <div className="prose">{children}</div>}
+        {action}
+      </div>
     </div>
   )
 }
 
-export function Loading({ label = 'Loading' }: { label?: string }) {
-  return <div className="row muted" style={{ padding: 24 }}><Spinner /> {label}…</div>
+export function Loading({ label = 'Loading', inline }: { label?: string; inline?: boolean }) {
+  return <InkLoader label={label} inline={inline} />
+}
+
+/** An image that fades in once it has loaded, so grids fill in softly instead of popping. */
+export function FadeImg({ className, onLoad, ...rest }: ImgHTMLAttributes<HTMLImageElement>) {
+  const [ready, setReady] = useState(false)
+  const ref = useRef<HTMLImageElement>(null)
+  useEffect(() => { if (ref.current?.complete) setReady(true) }, [])
+  return (
+    <img ref={ref} {...rest} className={`fade${ready ? ' in' : ''}${className ? ` ${className}` : ''}`}
+      onLoad={(e) => { setReady(true); onLoad?.(e) }} onError={() => setReady(true)} />
+  )
+}
+
+/** Count up to a number when it first appears. */
+export function useCountUp(target: number, ms = 900) {
+  const [v, setV] = useState(target)
+  const seen = useRef(false)
+  useEffect(() => {
+    if (seen.current || !target || window.matchMedia?.('(prefers-reduced-motion: reduce)').matches) { setV(target); if (target) seen.current = true; return }
+    seen.current = true
+    const t0 = performance.now()
+    let raf = 0
+    const step = (t: number) => {
+      const f = Math.min(1, (t - t0) / ms)
+      setV(Math.round(target * (1 - Math.pow(1 - f, 3))))
+      if (f < 1) raf = requestAnimationFrame(step)
+    }
+    raf = requestAnimationFrame(step)
+    return () => cancelAnimationFrame(raf)
+  }, [target, ms])
+  return v
 }

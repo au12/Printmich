@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
+import { createPortal } from 'react-dom'
 import { useSearchParams } from 'react-router-dom'
 import { ChevronLeft, ChevronRight, EyeOff, ExternalLink, Printer, X } from 'lucide-react'
 import { api, immichLink, thumbUrl } from '../lib/api'
@@ -7,8 +8,10 @@ import type { PrintItem } from '../lib/types'
 import { camera, exposureParts, fmtDate, fmtDateTime, money, photoTitle, place, plural, takenDate } from '../lib/format'
 import { Histogram } from '../components/Histogram'
 import { PrintSheet } from '../components/PrintSheet'
-import { Dialog, Field, Loading, Segmented, Select, Spinner, useToast } from '../components/ui'
-import { InkMark, InkUsage } from '../components/Ink'
+import { Dialog, FadeImg, Field, Loading, Segmented, Select, Spinner, useCountUp, useToast } from '../components/ui'
+import { InkUsage } from '../components/Ink'
+import { Logo } from '../components/Logo'
+import { inkBurst } from '../lib/fx'
 
 function useColumns(ref: React.RefObject<HTMLDivElement | null>) {
   const [cols, setCols] = useState(4)
@@ -32,15 +35,16 @@ function Intro({ title, wide }: { title: string; wide?: boolean }) {
   const s = stats.data
   const since = s?.since ? new Date(s.since) : null
   const topPaper = s?.by_paper?.[0]
+  const total = useCountUp(s?.total ?? 0)
   return (
     <div className={`wall-intro${wide ? ' wide' : ''}`}>
       <div className="stack-s">
-        <InkMark size={22} />
-        <h1 className="h1" style={{ marginTop: 10 }}>{title}</h1>
+        <Logo size={44} intro />
+        <h1 className="h1" style={{ marginTop: 12 }}>{title}</h1>
         {since && <div className="small muted">Since {fmtDate(since, { month: 'long', year: 'numeric' })}</div>}
       </div>
       <div>
-        <div className="big num">{(s?.total ?? 0).toLocaleString()}</div>
+        <div className="big num">{total.toLocaleString()}</div>
         <div className="small muted">photos printed</div>
       </div>
       <div className="stat-list">
@@ -62,7 +66,8 @@ function ReprintDialog({ item, onClose }: { item: PrintItem; onClose: () => void
     <Dialog title="Print again" onClose={onClose} footer={
       <>
         <button className="btn btn-ghost" onClick={onClose}>Cancel</button>
-        <button className="btn btn-paper" onClick={async () => {
+        <button className="btn btn-paper" onClick={async (e) => {
+          inkBurst(e.currentTarget)
           try {
             await api.post(`/api/prints/${item.id}/reprint`, presetId && presetId !== item.preset_id ? { preset_id: presetId } : {})
             toast.ok('Sent to the print queue.')
@@ -111,7 +116,7 @@ function Viewer({ items, index, onIndex, onClose, onHide }: { items: PrintItem[]
   const pageAspect = g?.layout_mm ? g.layout_mm[0] / g.layout_mm[1] : 2 / 3
   const exp = a ? exposureParts(a) : []
 
-  return (
+  return createPortal(
     <div className="viewer" role="dialog" aria-modal="true" aria-label={photoTitle(a)}
       onTouchStart={(e) => { touch.current = e.touches[0].clientX }}
       onTouchEnd={(e) => { if (touch.current != null) { const dx = e.changedTouches[0].clientX - touch.current; if (Math.abs(dx) > 60) go(dx < 0 ? 1 : -1); touch.current = null } }}>
@@ -137,7 +142,7 @@ function Viewer({ items, index, onIndex, onClose, onHide }: { items: PrintItem[]
         <div className="stack">
           <div>
             <h2 className="h2">{photoTitle(a)}</h2>
-            <div className="small" style={{ color: '#9a9a9a', marginTop: 4 }}>
+            <div className="small sub" style={{ marginTop: 4 }}>
               {[a?.description ? place(a) : '', fmtDate(takenDate(a))].filter(Boolean).join(', ')}
             </div>
           </div>
@@ -149,7 +154,7 @@ function Viewer({ items, index, onIndex, onClose, onHide }: { items: PrintItem[]
             <button className="btn btn-sm btn-icon" title="Hide from the wall" aria-label="Hide from the wall" onClick={() => onHide(p)}><EyeOff /></button>
           </div>
           <hr className="divider" style={{ margin: '2px 0' }} />
-          <div className="h3" style={{ color: '#f0f0f0' }}>Print</div>
+          <div className="h3">Print</div>
           <dl className="kv">
             <dt>Printed</dt><dd>{fmtDateTime(p.completed_at || p.created_at)}</dd>
             <dt>Paper</dt><dd>{p.paper.name}{p.paper.code ? ` (${p.paper.code})` : ''}</dd>
@@ -165,7 +170,7 @@ function Viewer({ items, index, onIndex, onClose, onHide }: { items: PrintItem[]
           {a && (
             <>
               <hr className="divider" style={{ margin: '2px 0' }} />
-              <div className="h3" style={{ color: '#f0f0f0' }}>Photo</div>
+              <div className="h3">Photo</div>
               {p.thumb && <Histogram src={p.thumb} />}
               <dl className="kv">
                 {camera(a) && (<><dt>Camera</dt><dd>{camera(a)}</dd></>)}
@@ -181,7 +186,8 @@ function Viewer({ items, index, onIndex, onClose, onHide }: { items: PrintItem[]
         </div>
       </aside>
       {reprint && <ReprintDialog item={p} onClose={() => setReprint(false)} />}
-    </div>
+    </div>,
+    document.body,
   )
 }
 
@@ -255,7 +261,7 @@ export function WallPage() {
               {col.map((t) => t.kind === 'intro' ? <Intro key="intro" title={status.data?.wall_title || 'Printed moments'} /> : (
                 <button key={t.item.id} className="tile" onClick={() => open(t.item.id)}
                   style={{ aspectRatio: t.item.thumb_w && t.item.thumb_h ? `${t.item.thumb_w} / ${t.item.thumb_h}` : '4 / 3' }}>
-                  {t.item.thumb && <img src={t.item.thumb} alt={photoTitle(t.item.asset)} loading="lazy" decoding="async" />}
+                  {t.item.thumb && <FadeImg src={t.item.thumb} alt={photoTitle(t.item.asset)} loading="lazy" decoding="async" />}
                   <span className="tile-info">
                     <strong className="ellipsis">{photoTitle(t.item.asset)}</strong>
                     <span>{t.item.size_label}, {t.item.paper.name}</span>
@@ -267,7 +273,7 @@ export function WallPage() {
         </div>
       )}
       {!prints.isLoading && items.length === 0 && (
-        <div className="muted" style={{ padding: '10px 18px 40px' }}>Prints appear here as soon as they come out of the printer.</div>
+        <div className="muted" style={{ padding: '18px 18px 40px' }}>Prints appear here as soon as they come out of the printer.</div>
       )}
       <div ref={sentinel} style={{ height: 1 }} />
       {prints.isFetchingNextPage && <div className="row" style={{ justifyContent: 'center', padding: 20 }}><Spinner /></div>}

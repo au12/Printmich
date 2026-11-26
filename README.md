@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="icon.png" width="96" alt="Printmich icon">
+  <img src="icon.png" width="128" alt="Printmich icon: ten ink tanks arched over a printer handing out a photo">
 </p>
 
 <h1 align="center">Printmich</h1>
@@ -23,7 +23,7 @@ It talks to the PRO-310 the way AirPrint does (IPP Everywhere), so it also works
 - **Sees the photo before you do.** Printmich previews tomorrow's pick ahead of time. Let it print automatically, give yourself a window to skip or swap it, or require approval for every print.
 - **Picks good photos, not random ones.** Candidates are scored for sharpness, exposure, how well they fit the paper's shape, resolution at the print size, favorites and ratings. Screenshots, blurry shots, low-resolution images and recent repeats are left out.
 - **The settings Canon's driver gives you.** Paper size, media type and feed, borderless, print quality, 300/600 dpi, sRGB or Adobe RGB, rendering intent and black point compensation, 16-bit output, brightness, contrast, saturation, shadows, highlights, cyan/magenta/yellow balance, sharpening, black-and-white with cool, warm or custom toning, copies.
-- **Calibrated Canon papers.** Pro Platinum, Plus Glossy II, Pro Luster, Plus Semi-gloss, Matte, Pro Premium Matte, Premium Fine Art Smooth and Rough, plus generic baryta, fine art, canvas and washi profiles. Each paper maps to the printer's own media type, black ink and feed, and carries a calibration you can tune with a printed chart, a Canon-style color pattern (ring-around), or your own ICC profile.
+- **Calibrated Canon papers.** Pro Platinum, Plus Glossy II, Pro Luster, Plus Semi-Gloss, Matte, Pro Premium Matte, Premium Fine Art Smooth and Rough, plus generic baryta, fine art, canvas and washi profiles. Each paper maps to the printer's own media type, black ink and feed, and carries a calibration you can tune with a printed chart, a Canon-style color pattern (ring-around), or your own ICC profile.
 - **Layouts that look printed, not stretched.** Borders and mats, keylines, captions from photo metadata in EB Garamond, Inter or a monospace face, face-aware cropping with a click-to-set focus point, and automatic rotation to the sheet.
 - **A wall of everything printed.** A quiet masonry wall in the spirit of [ChronoFrame](https://github.com/HoshinoSuzumi/chronoframe), with a full-screen viewer that shows each photo as shot or as printed on its paper, plus print details, EXIF and a histogram.
 - **Read-only Immich access.** A scoped API key with read permissions is enough. Printmich checks the key and tells you exactly which permissions are missing.
@@ -32,6 +32,7 @@ It talks to the PRO-310 the way AirPrint does (IPP Everywhere), so it also works
 - **A virtual PRO-310.** Try everything without wasting paper: the virtual printer accepts real jobs and saves each page as an image.
 - **Notifications** through [Apprise](https://github.com/caronc/apprise) (ntfy, Pushover, Discord, email, Home Assistant and 100+ more), with a preview of the upcoming photo attached.
 - **Works on your phone.** The whole UI is responsive and can be added to your home screen.
+- **Nice to live with.** Light and dark themes, ink tanks that fill as the page loads, a sheet that feeds out of the slot when you print, and motion that switches off if your device asks for less of it.
 
 ## Screenshots
 

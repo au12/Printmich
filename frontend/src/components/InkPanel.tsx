@@ -6,6 +6,7 @@ import { useInk, useInvalidate } from '../lib/hooks'
 import type { InkEvent, InkSettings, InkState, InkTank } from '../lib/types'
 import { fmtDate, parseDate, plural, relativeTime } from '../lib/format'
 import { INKS } from './Ink'
+import { inkBurst } from '../lib/fx'
 import { Dialog, Field, Loading, NumberInput, Segmented, Toggle, useToast } from './ui'
 
 const INK_COLOR = Object.fromEntries(INKS.map((i) => [i.key, i.color]))
@@ -18,7 +19,7 @@ function ml(v: number | null | undefined) {
   return v == null ? '–' : `${v < 10 ? v.toFixed(1) : Math.round(v)} ml`
 }
 
-function TankLine({ t, onSet }: { t: InkTank; onSet: () => void }) {
+function TankLine({ t, n, onSet }: { t: InkTank; n: number; onSet: () => void }) {
   const pct = t.percent ?? 0
   const since = !t.since ? 'Not tracked yet'
     : t.since_kind === 'refill' ? `Refilled ${relativeTime(t.since)}`
@@ -31,7 +32,7 @@ function TankLine({ t, onSet }: { t: InkTank; onSet: () => void }) {
         {t.status === 'empty' && <span className="chip chip-err">Refill now</span>}
         {t.status === 'low' && <span className="chip chip-warn">Low</span>}
       </span>
-      <span className="meter" aria-hidden="true"><i style={{ width: `${pct}%`, background: INK_COLOR[t.ink] ?? t.color }} /></span>
+      <span className="meter" aria-hidden="true"><i style={{ width: `${pct}%`, background: INK_COLOR[t.ink] ?? t.color, ['--i' as string]: n }} /></span>
       <button className="btn btn-ghost btn-sm pct num" onClick={onSet} title={`Set the ${t.name} level by hand`}>
         {t.percent == null ? '–' : `${Math.round(pct)}%`}
       </button>
@@ -60,8 +61,8 @@ function RefillDialog({ state, onClose, onDone }: { state: InkState; onClose: ()
   }
   return (
     <Dialog title="Log a refill" onClose={onClose} footer={<>
-      <button className="btn" onClick={onClose}>Cancel</button>
-      <button className="btn btn-paper" disabled={!sel.length || busy} onClick={submit}><Droplet /> Log refill</button>
+      <button className="btn btn-ghost" onClick={onClose}>Cancel</button>
+      <button className="btn btn-paper" disabled={!sel.length || busy} onClick={(e) => { inkBurst(e.currentTarget, 10); submit() }}><Droplet /> Log refill</button>
     </>}>
       <div className="stack">
         <p className="small muted" style={{ margin: 0 }}>Choose the tanks you topped up. Printmich counts them as full again.</p>
@@ -104,7 +105,7 @@ function SetLevelDialog({ tank, onClose, onDone }: { tank: InkTank; onClose: () 
   const [pct, setPct] = useState(Math.round(tank.percent ?? 100))
   return (
     <Dialog title={`Set ${tank.name}`} onClose={onClose} footer={<>
-      <button className="btn" onClick={onClose}>Cancel</button>
+      <button className="btn btn-ghost" onClick={onClose}>Cancel</button>
       <button className="btn btn-paper" onClick={async () => {
         try { onDone(await api.post<InkState>('/api/ink/level', { ink: tank.ink, percent: pct })); toast.ok(`${tank.name} set to ${pct}%.`) } catch (e) { toast.error(e) }
       }}>Set level</button>
@@ -170,7 +171,7 @@ export function InkPanel() {
   useEffect(() => {
     if (ready && location.hash === '#ink') document.getElementById('ink')?.scrollIntoView({ behavior: 'smooth', block: 'start' })
   }, [ready, location.hash])
-  if (ink.isLoading || !ink.data) return <Loading />
+  if (ink.isLoading || !ink.data) return <Loading inline label="Reading the tanks" />
   const st = ink.data
   const s = st.settings
   const tracking = st.tanks.some((t) => t.level_ml != null)
@@ -232,7 +233,7 @@ export function InkPanel() {
               </div>
             </div>
             <div className="tank-list">
-              {st.tanks.map((t) => <TankLine key={t.ink} t={t} onSet={() => setSetting(t)} />)}
+              {st.tanks.map((t, n) => <TankLine key={t.ink} t={t} n={n} onSet={() => setSetting(t)} />)}
             </div>
             <p className="small faint" style={{ margin: 0 }}>
               {calibrated.length

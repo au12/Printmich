@@ -1,12 +1,12 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { Link } from 'react-router-dom'
-import { ArrowLeft, Heart, Printer, Search } from 'lucide-react'
+import { ArrowLeft, Heart, Images, Printer, Search } from 'lucide-react'
 import { personThumbUrl, thumbUrl } from '../lib/api'
 import { useAlbums, useBrowse, usePeople, useStatus } from '../lib/hooks'
 import type { AssetSummary } from '../lib/types'
 import { fmtDate, parseDate, plural } from '../lib/format'
 import { PrintDialog } from '../components/PrintDialog'
-import { Empty, Loading, Spinner } from '../components/ui'
+import { Empty, FadeImg, Loading, Spinner } from '../components/ui'
 
 const TABS = [
   { key: 'favorites', label: 'Favorites' },
@@ -30,14 +30,14 @@ function AssetGrid({ source, extra, onPick, empty }: { source: string; extra?: R
     return () => io.disconnect()
   }, [q])
   if (q.isLoading) return <Loading label="Loading photos" />
-  if (q.error) return <Empty title="Couldn't load photos from Immich">{(q.error as Error).message}</Empty>
+  if (q.error) return <Empty icon={<Images />} title="Couldn't load photos from Immich">{(q.error as Error).message}</Empty>
   if (!items.length) return <div className="muted" style={{ padding: '20px 0' }}>{empty}</div>
   return (
     <>
       <div className="asset-grid">
         {items.map((a) => (
           <button key={a.id} className="asset" onClick={() => onPick(a)} title={a.filename}>
-            <img src={thumbUrl(a.id)} alt={a.description || a.filename} loading="lazy" decoding="async" />
+            <FadeImg src={thumbUrl(a.id)} alt={a.description || a.filename} loading="lazy" decoding="async" />
             <span className="badge">
               {a.printed && <span title="Printed before"><Printer /></span>}
               {a.favorite && <span title="Favorite"><Heart fill="currentColor" /></span>}
@@ -66,7 +66,7 @@ export function LibraryPage() {
     return (
       <div className="page">
         <header className="page-head"><h1 className="h1">Library</h1></header>
-        <Empty title="Connect Immich to browse your photos" action={<Link to="/settings" className="btn btn-paper">Open settings</Link>}>
+        <Empty icon={<Images />} title="Connect Immich to browse your photos" action={<Link to="/settings" className="btn btn-paper">Open settings</Link>}>
           Printmich needs your Immich server address and a read-only API key.
         </Empty>
       </div>
@@ -84,7 +84,7 @@ export function LibraryPage() {
       </header>
       <div className="lib-tabs" role="tablist">
         {TABS.map((t) => (
-          <button key={t.key} role="tab" aria-selected={tab === t.key} className={`btn btn-sm ${tab === t.key ? 'btn-paper' : ''}`}
+          <button key={t.key} role="tab" aria-selected={tab === t.key} className="lib-tab"
             onClick={() => { setTab(t.key); setAlbum(null); setPerson(null) }}>{t.label}</button>
         ))}
       </div>
@@ -107,9 +107,9 @@ export function LibraryPage() {
         <div className="collection-grid">
           {(albums.data ?? []).map((a) => (
             <button key={a.id} className="collection" onClick={() => setAlbum({ id: a.id, name: a.name })}>
-              <div className="cover">{a.thumbnail && <img src={thumbUrl(a.thumbnail)} alt="" loading="lazy" />}</div>
+              <div className="cover">{a.thumbnail && <FadeImg src={thumbUrl(a.thumbnail)} alt="" loading="lazy" />}</div>
               <div>
-                <div style={{ fontWeight: 560 }}>{a.name}</div>
+                <div className="strong">{a.name}</div>
                 <div className="small faint">{plural(a.count, 'photo')}{a.end ? `, ${parseDate(a.end)?.getFullYear()}` : ''}</div>
               </div>
             </button>

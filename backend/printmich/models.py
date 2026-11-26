@@ -6,6 +6,8 @@ from typing import Any, Literal
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator
 
+from .text import title_label
+
 
 def new_id() -> str:
     return uuid.uuid4().hex[:12]
@@ -169,6 +171,11 @@ class Paper(Model):
     sheen: float = 0.5
     builtin: bool = True
     customized: bool = False
+
+    @field_validator("name")
+    @classmethod
+    def _proper_name(cls, v: str) -> str:
+        return title_label(v.strip())
 
 
 # ---------------------------------------------------------------- sources & schedules

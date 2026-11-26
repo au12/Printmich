@@ -4,8 +4,8 @@
   "description": "Automated photo prints from your Immich library",
   "start_url": "/",
   "display": "standalone",
-  "background_color": "#222222",
-  "theme_color": "#222222",
+  "background_color": "#0b1225",
+  "theme_color": "#0b1225",
   "icons": [
     {
       "src": "/icon-192.png",

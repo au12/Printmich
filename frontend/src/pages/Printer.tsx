@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { Bell, Download, ExternalLink, FlaskConical, RefreshCw, Search, Wifi, X } from 'lucide-react'
+import { Bell, CircleHelp, Download, ExternalLink, FlaskConical, RefreshCw, Search, Wifi, X } from 'lucide-react'
 import { api } from '../lib/api'
 import { useInvalidate, usePrinter, useSettings } from '../lib/hooks'
 import type { PrinterInfo } from '../lib/types'
@@ -49,7 +49,7 @@ function Connect({ current, locked, onDone }: { current?: string; locked: boolea
         <div className="list panel panel-tight">
           {found.map((f) => (
             <div key={f.uri} className="list-row">
-              <div className="grow"><div style={{ fontWeight: 560 }}>{f.name}</div><div className="small faint">{f.model} at {f.host}{f.secure ? ', encrypted' : ''}</div></div>
+              <div className="grow"><div className="strong">{f.name}</div><div className="small faint">{f.model} at {f.host}{f.secure ? ', encrypted' : ''}</div></div>
               <button className="btn btn-sm btn-paper" onClick={() => save(f.uri, f.name)}>Use this printer</button>
             </div>
           ))}
@@ -141,7 +141,7 @@ export function PrinterPage() {
       <header className="page-head">
         <div>
           <h1 className="h1">{c ? (c.virtual ? 'Virtual PRO-310' : c.make_model || 'Printer') : 'Printer'}</h1>
-          <p className="lede">{info?.configured ? <>Connected at <span className="num">{info.uri}</span> over IPP — no driver involved.</> : 'Connect your Canon imagePROGRAF PRO-310 (or any AirPrint / IPP Everywhere printer).'}</p>
+          <p className="lede">{info?.configured ? <>Connected at <span className="num">{info.uri}</span> over IPP, with no driver involved.</> : 'Connect your Canon imagePROGRAF PRO-310 (or any AirPrint / IPP Everywhere printer).'}</p>
         </div>
         {info?.configured && (
           <div className="actions">
@@ -165,14 +165,14 @@ export function PrinterPage() {
                   <span className="h2">{!st.online ? 'Offline' : st.state === 'processing' ? 'Printing' : st.state === 'stopped' ? 'Needs attention' : 'Ready'}</span></div>
                 {(st.reasons ?? []).map((r) => (
                   <div key={r.keyword} className="small" style={{ color: r.severity === 'error' ? 'var(--err)' : 'var(--warn)' }}>
-                    {r.text}{r.hint && <span className="faint" style={{ display: 'block', color: 'var(--text-2)' }}>{r.hint}</span>}
+                    {r.text}{r.hint && <span style={{ display: 'block', color: 'var(--text-2)' }}>{r.hint}</span>}
                   </div>
                 ))}
                 {st.ready?.length ? (
                   <dl className="kv">
                     {st.ready.map((r, i) => (
                       <div key={i} style={{ display: 'contents' }}>
-                        <dt>{r.source_label ?? 'Loaded'}</dt><dd>{r.size_label ?? 'Unknown size'}{r.type_label ? `, ${r.type_label.toLowerCase()}` : ''}</dd>
+                        <dt>{r.source_label ?? 'Loaded'}</dt><dd>{r.size_label ?? 'Unknown size'}{r.type_label ? `, ${r.type_label}` : ''}</dd>
                       </div>
                     ))}
                   </dl>
@@ -206,7 +206,7 @@ export function PrinterPage() {
           {c?.virtual && <VirtualOutputs />}
         </>
       )}
-      {!info?.configured && !changing && <div style={{ marginTop: 18 }}><Empty title="Why no driver?">The PRO-310 speaks IPP Everywhere (the standard behind AirPrint and Mopria). Printmich renders each page itself and sends exact pixels, so color, sharpening and layout are fully under your control.</Empty></div>}
+      {!info?.configured && !changing && <div style={{ marginTop: 18 }}><Empty icon={<CircleHelp />} title="Why no driver?">The PRO-310 speaks IPP Everywhere (the standard behind AirPrint and Mopria). Printmich renders each page itself and sends exact pixels, so color, sharpening and layout are fully under your control.</Empty></div>}
     </div>
   )
 }

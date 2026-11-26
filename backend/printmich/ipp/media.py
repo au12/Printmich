@@ -3,6 +3,8 @@ from __future__ import annotations
 
 import re
 
+from ..text import title_label
+
 # keyword -> (width_mm, height_mm, label)
 KNOWN_SIZES: dict[str, tuple[float, float, str]] = {
     "oe_photo-l_3.5x5in": (88.9, 127.0, "3.5 × 5 in (L)"),
@@ -94,20 +96,20 @@ def sort_key(kw: str) -> tuple[int, float]:
 
 
 MEDIA_TYPE_LABELS = {
-    "stationery": "Plain paper",
-    "stationery-lightweight": "Plain paper (lightweight)",
-    "stationery-heavyweight": "Plain paper (heavyweight)",
-    "stationery-fine": "Fine paper",
-    "stationery-coated": "Coated paper",
-    "stationery-inkjet": "Inkjet paper",
-    "photographic": "Photo paper",
-    "photographic-glossy": "Glossy photo paper",
-    "photographic-high-gloss": "High-gloss photo paper",
-    "photographic-semi-gloss": "Semi-gloss photo paper",
-    "photographic-satin": "Satin / luster photo paper",
-    "photographic-matte": "Matte photo paper",
-    "photographic-film": "Photo film",
-    "cardstock": "Card stock",
+    "stationery": "Plain Paper",
+    "stationery-lightweight": "Plain Paper (Lightweight)",
+    "stationery-heavyweight": "Plain Paper (Heavyweight)",
+    "stationery-fine": "Fine Paper",
+    "stationery-coated": "Coated Paper",
+    "stationery-inkjet": "Inkjet Paper",
+    "photographic": "Photo Paper",
+    "photographic-glossy": "Glossy Photo Paper",
+    "photographic-high-gloss": "High-Gloss Photo Paper",
+    "photographic-semi-gloss": "Semi-Gloss Photo Paper",
+    "photographic-satin": "Satin / Luster Photo Paper",
+    "photographic-matte": "Matte Photo Paper",
+    "photographic-film": "Photo Film",
+    "cardstock": "Card Stock",
     "envelope": "Envelope",
     "labels": "Labels",
     "transparency": "Transparency",
@@ -116,19 +118,18 @@ MEDIA_TYPE_LABELS = {
 
 MEDIA_SOURCE_LABELS = {
     "auto": "Automatic",
-    "main": "Main tray",
-    "top": "Top feed",
-    "rear": "Rear tray",
-    "manual": "Manual feed",
-    "by-pass-tray": "Bypass tray",
-    "alternate": "Alternate tray",
-    "photo": "Photo tray",
+    "main": "Main Tray",
+    "top": "Top Feed",
+    "rear": "Rear Tray",
+    "manual": "Manual Feed",
+    "by-pass-tray": "Bypass Tray",
+    "alternate": "Alternate Tray",
+    "photo": "Photo Tray",
     "tray-1": "Tray 1",
     "tray-2": "Tray 2",
-    "disc": "Disc tray",
-    "envelope": "Envelope feeder",
+    "disc": "Disc Tray",
+    "envelope": "Envelope Feeder",
 }
-
 
 def humanize_keyword(kw: str) -> str:
     """'com.canon-photo-paper-pro-luster' -> 'Photo Paper Pro Luster'."""
@@ -149,7 +150,7 @@ def media_type_label(kw: str, strings: dict[str, str] | None = None) -> str:
     if strings:
         for key in (f"media-type.{kw}", kw):
             if key in strings:
-                return strings[key]
+                return title_label(strings[key])
     return MEDIA_TYPE_LABELS.get(kw) or humanize_keyword(kw)
 
 
@@ -157,7 +158,7 @@ def media_source_label(kw: str, strings: dict[str, str] | None = None) -> str:
     if strings:
         for key in (f"media-source.{kw}", kw):
             if key in strings:
-                return strings[key]
+                return title_label(strings[key])
     return MEDIA_SOURCE_LABELS.get(kw) or humanize_keyword(kw)
 
 

@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { ArrowLeft, Plus } from 'lucide-react'
+import { ArrowLeft, Plus, SlidersHorizontal } from 'lucide-react'
 import { api } from '../lib/api'
 import { useInvalidate, usePapers, usePresets, useSizes } from '../lib/hooks'
 import type { Preset } from '../lib/types'
@@ -34,6 +34,7 @@ export function PresetsPage() {
   const [editing, setEditing] = useState<Preset | null>(null)
   const [original, setOriginal] = useState<string>('')
   const [confirmDelete, setConfirmDelete] = useState(false)
+  const [confirmLeave, setConfirmLeave] = useState(false)
 
   const open = (p: Preset) => { setEditing(structuredClone(p)); setOriginal(JSON.stringify(p)) }
 
@@ -62,8 +63,8 @@ export function PresetsPage() {
         <header className="page-head">
           <div>
             <button className="btn btn-ghost btn-sm" style={{ marginLeft: -10, marginBottom: 8 }} onClick={() => {
-              if (JSON.stringify(editing) !== original && !window.confirm('Discard unsaved changes?')) return
-              setEditing(null)
+              if (JSON.stringify(editing) !== original) setConfirmLeave(true)
+              else setEditing(null)
             }}><ArrowLeft /> All presets</button>
             <h1 className="h1">{editing.name || 'Untitled preset'}</h1>
           </div>
@@ -78,6 +79,10 @@ export function PresetsPage() {
             } catch (e) { toast.error(e) }
           }}
           onDelete={() => setConfirmDelete(true)} />
+        {confirmLeave && (
+          <Confirm title="Leave without saving?" body={`Your changes to “${editing.name}” will be lost.`} confirmLabel="Discard changes" danger
+            onClose={() => setConfirmLeave(false)} onConfirm={() => setEditing(null)} />
+        )}
         {confirmDelete && (
           <Confirm title="Delete this preset?" body={`“${editing.name}” will be removed. Prints already made keep their settings.`} confirmLabel="Delete preset" danger
             onClose={() => setConfirmDelete(false)}
@@ -98,16 +103,20 @@ export function PresetsPage() {
         </div>
         <div className="actions"><button className="btn btn-paper" onClick={create}><Plus /> New preset</button></div>
       </header>
-      {presets.isLoading ? <Loading /> : !presets.data?.length ? <Empty title="No presets yet" /> : (
+      {presets.isLoading ? <Loading /> : !presets.data?.length ? (
+        <Empty icon={<SlidersHorizontal />} title="No presets yet" action={<button className="btn btn-paper" onClick={create}><Plus /> New preset</button>}>
+          A preset remembers the paper, size, border and color settings for a kind of print.
+        </Empty>
+      ) : (
         <div className="preset-list">
-          {presets.data.map((p) => {
+          {presets.data.map((p, n) => {
             const size = sizes.data?.find((s) => s.keyword === p.output.media_size)
             const paper = papers.data?.find((x) => x.id === p.output.paper_id)
             return (
-              <button key={p.id} className="preset-card" onClick={() => open(p)}>
+              <button key={p.id} className="preset-card" style={{ ['--i' as string]: n }} onClick={() => open(p)}>
                 <span className="swatch"><PageSwatch preset={p} w={size?.width_mm ?? 101.6} h={size?.height_mm ?? 152.4} tint={paper?.tint} /></span>
                 <span className="stack-s" style={{ minWidth: 0, gap: 4 }}>
-                  <span style={{ fontWeight: 600, fontStretch: '108%' }}>{p.name}</span>
+                  <span className="h3">{p.name}</span>
                   <span className="small muted">{size?.label ?? p.size_label}, {p.paper_name}</span>
                   {p.description && <span className="small faint" style={{ display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>{p.description}</span>}
                 </span>

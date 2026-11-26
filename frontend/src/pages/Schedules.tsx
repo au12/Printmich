@@ -6,7 +6,8 @@ import {
 import { api, thumbUrl } from '../lib/api'
 import { useAlbums, useInvalidate, usePeople, usePresets, useSchedules, useStatus } from '../lib/hooks'
 import type { Schedule, SourceKind, SourceSpec } from '../lib/types'
-import { fmtDateTime, photoTitle, plural, whenLabel } from '../lib/format'
+import { fmtDateTime, photoTitle, plural, whenInline, whenLabel } from '../lib/format'
+import { inkBurst } from '../lib/fx'
 import { Confirm, Drawer, Empty, Field, Loading, NumberInput, Segmented, Select, Slider, Toggle, useToast } from '../components/ui'
 import { INKS } from '../components/Ink'
 import { PrintSheet } from '../components/PrintSheet'
@@ -56,7 +57,7 @@ function MultiPick({ items, selected, onChange, empty }: { items: { id: string; 
   return (
     <div className="stack-s">
       {items.length > 8 && <input className="input" placeholder="Filter" value={q} onChange={(e) => setQ(e.target.value)} />}
-      <div style={{ maxHeight: 190, overflowY: 'auto', border: '1px solid var(--line)', borderRadius: 'var(--r-s)', padding: '4px 10px' }}>
+      <div className="multi-pick">
         {shown.map((i) => (
           <label key={i.id} className="row" style={{ padding: '5px 0', cursor: 'pointer' }}>
             <input type="checkbox" checked={selected.includes(i.id)}
@@ -106,7 +107,7 @@ function SourceEditor({ src, onChange, onRemove, color, share }: { src: SourceSp
       <span className="source-icon" style={{ boxShadow: `inset 3px 0 0 ${color}` }}><Icon /></span>
       <div className="stack-s" style={{ minWidth: 0 }}>
         <div>
-          <div style={{ fontWeight: 560 }}>{meta.label}</div>
+          <div className="strong">{meta.label}</div>
           <div className="small faint">{meta.hint}</div>
         </div>
         {config}
@@ -342,14 +343,16 @@ export function SchedulesPage() {
         </div>
         <div className="actions"><button className="btn btn-paper" onClick={() => setEditing(blankSchedule(firstPreset))}><Plus /> New schedule</button></div>
       </header>
-      {status.data && !status.data.immich && <div style={{ marginBottom: 18 }}><Empty title="Connect Immich first" action={<Link to="/settings" className="btn">Open settings</Link>}>Schedules need Immich to choose photos.</Empty></div>}
+      {status.data && !status.data.immich && <div style={{ marginBottom: 18 }}><Empty icon={<Images />} title="Connect Immich first" action={<Link to="/settings" className="btn">Open settings</Link>}>Schedules need Immich to choose photos.</Empty></div>}
       {schedules.isLoading ? <Loading /> : list.length === 0 ? (
-        <Empty title="No schedules yet" action={<button className="btn btn-paper" onClick={() => setEditing(blankSchedule(firstPreset))}><Plus /> New schedule</button>} />
-      ) : list.map((s) => {
+        <Empty icon={<CalendarHeart />} title="No schedules yet" action={<button className="btn btn-paper" onClick={() => setEditing(blankSchedule(firstPreset))}><Plus /> New schedule</button>}>
+          Start with a photo of the day from your favorites, then add more whenever you like.
+        </Empty>
+      ) : list.map((s, n) => {
         const pick = s.pick
         const img = pick ? thumbUrl(pick.asset_id) : s.last_print?.thumb ?? null
         return (
-          <article key={s.id} className="schedule-card">
+          <article key={s.id} className={`schedule-card${s.enabled ? '' : ' off'}`} style={{ ['--i' as string]: n }}>
             <div className="schedule-thumb">
               {img ? <PrintSheet src={img} aspect={1} /> : <div className="schedule-thumb-empty"><Images size={22} /></div>}
             </div>
@@ -360,7 +363,7 @@ export function SchedulesPage() {
               </div>
               <div className="small muted">{s.timing_text}, {s.preset_name ?? 'no preset'}</div>
               <div className="small">
-                {s.enabled && s.next_run_at ? <>Next print {whenLabel(s.next_run_at).replace(/^./, (c) => c.toLowerCase())}{pick ? <>: <strong>{photoTitle(pick.asset)}</strong>{pick.status === 'skipped' ? ' (skipped)' : ''}</> : ''}</> : <span className="faint">Not scheduled</span>}
+                {s.enabled && s.next_run_at ? <>Next print {whenInline(s.next_run_at)}{pick ? <>: <span className="strong">{photoTitle(pick.asset)}</span>{pick.status === 'skipped' ? ' (skipped)' : ''}</> : ''}</> : <span className="faint">Not scheduled</span>}
               </div>
               <div className="small faint">
                 {plural(s.print_count ?? 0, 'print')} so far{s.last_run_at ? `, last ran ${fmtDateTime(s.last_run_at)}` : ''}. Sources: {s.sources.map((x) => SOURCE_META[x.kind]?.label).join(', ') || 'none'}.
@@ -370,7 +373,7 @@ export function SchedulesPage() {
               <Toggle checked={s.enabled} onChange={(v) => toggle(s, v)} />
               <button className="btn btn-sm" onClick={() => setEditing(s)}>Edit</button>
               <button className="btn btn-sm" title="Print a photo from this schedule now"
-                onClick={async () => { try { await api.post(`/api/schedules/${s.id}/run`); toast.ok('Printing now.'); invalidate('schedules', 'dashboard') } catch (e) { toast.error(e) } }}>
+                onClick={async (e) => { inkBurst(e.currentTarget); try { await api.post(`/api/schedules/${s.id}/run`); toast.ok('Printing now.'); invalidate('schedules', 'dashboard') } catch (err) { toast.error(err) } }}>
                 <Printer /> Print now
               </button>
             </div>

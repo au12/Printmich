@@ -320,7 +320,7 @@ class PrintManager:
             check = self.app.printer.media_check(plan, status)
             if check and not check["ok"]:
                 loaded = check["loaded"]
-                msg = (f"Load {plan.page_label} {plan.media_type_label} in the {plan.media_source_label.lower()} "
+                msg = (f"Load {plan.page_label} {plan.media_type_label} in the {plan.media_source_label} "
                        f"(printer reports {loaded.get('size_label') or '?'} {loaded.get('type_label') or ''}).")
                 self._set(pid, "held", msg)
                 store.log("warning", "paper", msg, {"print_id": pid})

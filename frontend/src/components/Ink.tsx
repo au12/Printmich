@@ -1,36 +1,42 @@
+import type { CSSProperties } from 'react'
 import type { InkTank, Marker } from '../lib/types'
 
-/** The ten PRO-310 inks — the only color the interface itself uses. */
+/** The ten PRO-310 inks, in the order the tanks sit in the logo's arch. */
 export const INKS = [
-  { key: 'MBK', name: 'Matte Black', color: 'var(--ink-mbk)', hex: '#2b2b2b' },
-  { key: 'PBK', name: 'Photo Black', color: 'var(--ink-pbk)', hex: '#060606' },
-  { key: 'GY', name: 'Gray', color: 'var(--ink-gy)', hex: '#8e8e8e' },
-  { key: 'C', name: 'Cyan', color: 'var(--ink-c)', hex: '#00a3e0' },
-  { key: 'PC', name: 'Photo Cyan', color: 'var(--ink-pc)', hex: '#73cdeb' },
-  { key: 'M', name: 'Magenta', color: 'var(--ink-m)', hex: '#e2007a' },
-  { key: 'PM', name: 'Photo Magenta', color: 'var(--ink-pm)', hex: '#f28dc0' },
-  { key: 'Y', name: 'Yellow', color: 'var(--ink-y)', hex: '#ffdd00' },
-  { key: 'R', name: 'Red', color: 'var(--ink-r)', hex: '#e4002b' },
-  { key: 'CO', name: 'Chroma Optimizer', color: 'var(--ink-co)', hex: '#d9d9d9' },
+  { key: 'MBK', name: 'Matte Black', color: 'var(--ink-mbk)', hex: '#3a4050' },
+  { key: 'PBK', name: 'Photo Black', color: 'var(--ink-pbk)', hex: '#14161c' },
+  { key: 'GY', name: 'Gray', color: 'var(--ink-gy)', hex: '#99a1ae' },
+  { key: 'C', name: 'Cyan', color: 'var(--ink-c)', hex: '#19a9ee' },
+  { key: 'PC', name: 'Photo Cyan', color: 'var(--ink-pc)', hex: '#7accf6' },
+  { key: 'M', name: 'Magenta', color: 'var(--ink-m)', hex: '#ec2f8c' },
+  { key: 'PM', name: 'Photo Magenta', color: 'var(--ink-pm)', hex: '#f78cc1' },
+  { key: 'Y', name: 'Yellow', color: 'var(--ink-y)', hex: '#ffd231' },
+  { key: 'R', name: 'Red', color: 'var(--ink-r)', hex: '#f0392e' },
+  { key: 'CO', name: 'Chroma Optimizer', color: 'var(--ink-co)', hex: '#e6ebf3' },
 ]
 
-const MARK_HEIGHTS = [0.62, 0.78, 0.52, 1, 0.84, 0.94, 0.7, 0.88, 0.6, 0.44]
+const INK_BY_KEY = Object.fromEntries(INKS.map((i) => [i.key, i]))
+const isBlack = (key: string) => key === 'MBK' || key === 'PBK'
+const idx = (i: number) => ({ ['--i' as string]: i }) as CSSProperties
 
-export function InkMark({ size = 22 }: { size?: number }) {
+/** The ten inks taking turns: Printmich's loading state. */
+export function InkLoader({ label, inline }: { label?: string; inline?: boolean }) {
   return (
-    <span className="inkmark" aria-hidden="true" style={{ height: size }}>
-      {INKS.map((ink, i) => (
-        <i key={ink.key} style={{ height: `${MARK_HEIGHTS[i] * 100}%`, background: ink.key === 'PBK' || ink.key === 'MBK' ? 'var(--text)' : ink.color, opacity: ink.key === 'MBK' ? 0.55 : 1 }} />
-      ))}
-    </span>
+    <div className={`ink-loader${inline ? ' inline' : ''}`} role="status" aria-live="polite">
+      <span className="bars" aria-hidden="true">
+        {INKS.map((ink, i) => <i key={ink.key} className={isBlack(ink.key) ? 'blk' : ''} style={{ background: ink.color, ...idx(i) }} />)}
+      </span>
+      <span>{label ?? 'Loading'}…</span>
+    </div>
   )
 }
 
+/** A thin bar the inks flow across while a job is in progress. */
 export function InkProgress() {
   return (
     <div className="progress-ink" aria-hidden="true">
       {INKS.map((ink, i) => (
-        <i key={ink.key} style={{ background: ink.key.endsWith('BK') ? 'var(--text-2)' : ink.color, ['--i' as string]: i } as React.CSSProperties} />
+        <i key={ink.key} style={{ background: isBlack(ink.key) ? '#9a9a9a' : ink.color, ...idx(i) }} />
       ))}
     </div>
   )
@@ -43,26 +49,61 @@ function shortName(name: string) {
   return words.map((w) => w[0]).join('').toUpperCase().slice(0, 3) || name.slice(0, 3)
 }
 
-const INK_BY_KEY = Object.fromEntries(INKS.map((i) => [i.key, i]))
+type Level = { key: string; name: string; color: string; percent: number | null; status: 'ok' | 'low' | 'empty' | 'unknown'; title: string }
 
-/** Printmich's estimated tank levels (refilled or third-party ink). */
-function EstimatedLevels({ tanks }: { tanks: InkTank[] }) {
+function levelsOf(markers: Marker[], tanks?: InkTank[]): Level[] {
+  if (tanks?.length) {
+    return tanks.map((t) => {
+      const known = t.percent != null
+      const pct = known ? Math.max(0, Math.min(100, t.percent!)) : null
+      return {
+        key: t.ink, name: t.name, color: INK_BY_KEY[t.ink]?.color ?? t.color, percent: pct, status: t.status,
+        title: known ? `${t.name}: about ${t.level_ml?.toFixed(1)} ml (${Math.round(pct!)}%), estimated` : `${t.name}: not tracked yet`,
+      }
+    })
+  }
+  return markers.map((m) => {
+    const pct = m.level < 0 ? null : Math.max(0, Math.min(100, (m.level / (m.high || 100)) * 100))
+    const key = shortName(m.name)
+    return {
+      key, name: m.name, color: INK_BY_KEY[key]?.color ?? m.color, percent: pct,
+      status: pct == null ? 'unknown' : m.level <= m.low ? 'low' : 'ok',
+      title: `${m.name}: ${pct == null ? 'unknown' : `${Math.round(pct)}%`}`,
+    }
+  })
+}
+
+/** Ink levels as ten little tanks. Dashed outlines mean Printmich's estimate rather than the printer's reading. */
+export function InkLevels({ markers, tanks }: { markers: Marker[]; tanks?: InkTank[] }) {
+  const estimated = !!tanks?.length
+  const levels = levelsOf(markers, tanks)
+  if (!levels.length) return <div className="faint small">The printer doesn't report ink levels.</div>
   return (
-    <div className="ink-row est" role="list" aria-label="Estimated ink levels">
-      {tanks.map((t) => {
-        const known = t.percent != null
-        const lvl = known ? Math.max(0, Math.min(100, t.percent!)) : 0
-        const title = known ? `${t.name}: about ${t.level_ml?.toFixed(1)} ml (${Math.round(lvl)}%), estimated` : `${t.name}: not tracked yet`
-        return (
-          <div className={`ink ${t.status}${t.ink.endsWith('BK') ? ' blk' : ''}`} key={t.ink} role="listitem" title={title}>
-            <div className="tank">
-              <div className={`fill${t.status === 'low' || t.status === 'empty' ? ' low' : ''}`} style={{ height: `${lvl}%`, background: INK_BY_KEY[t.ink]?.color ?? t.color }} />
-            </div>
-            <span className="lbl">{t.ink}</span>
+    <div className={`ink-row${estimated ? ' est' : ''}`} role="list" aria-label={estimated ? 'Estimated ink levels' : 'Ink levels'}>
+      {levels.map((l, i) => (
+        <div className={`ink ${l.status}${isBlack(l.key) ? ' blk' : ''}`} key={`${l.key}-${i}`} role="listitem" title={l.title}>
+          <div className="tank">
+            <div className={`fill${l.status === 'low' || l.status === 'empty' ? ' low' : ''}`} style={{ height: `${l.percent ?? 0}%`, backgroundColor: l.color, ...idx(i) }} />
           </div>
-        )
-      })}
+          <span className="lbl">{l.key}</span>
+        </div>
+      ))}
     </div>
+  )
+}
+
+/** The same levels at a glance, for the sidebar. */
+export function MiniInk({ markers, tanks }: { markers: Marker[]; tanks?: InkTank[] }) {
+  const levels = levelsOf(markers, tanks)
+  if (!levels.some((l) => l.percent != null)) return null
+  return (
+    <span className="mini-ink" aria-hidden="true">
+      {levels.map((l, i) => (
+        <i key={`${l.key}-${i}`} title={l.title}>
+          <b className={isBlack(l.key) ? 'blk' : ''} style={{ height: `${Math.max(6, l.percent ?? 0)}%`, background: l.status === 'empty' ? 'var(--err)' : l.color, ...idx(i) }} />
+        </i>
+      ))}
+    </span>
   )
 }
 
@@ -78,27 +119,5 @@ export function InkUsage({ ink }: { ink: Record<string, number> }) {
       </span>
       <span className="num">≈ {total < 1 ? total.toFixed(2) : total.toFixed(1)} ml</span>
     </span>
-  )
-}
-
-export function InkLevels({ markers, tanks }: { markers: Marker[]; tanks?: InkTank[] }) {
-  if (tanks?.length) return <EstimatedLevels tanks={tanks} />
-  if (!markers.length) return <div className="faint small">The printer doesn't report ink levels.</div>
-  return (
-    <div className="ink-row" role="list" aria-label="Ink levels">
-      {markers.map((m) => {
-        const level = m.level < 0 ? null : Math.max(0, Math.min(100, (m.level / (m.high || 100)) * 100))
-        const low = level != null && m.level <= m.low
-        const key = shortName(m.name)
-        return (
-          <div className={`ink${key === 'MBK' || key === 'PBK' ? ' blk' : ''}`} key={m.name} role="listitem" title={`${m.name}: ${level == null ? 'unknown' : `${Math.round(level)}%`}`}>
-            <div className="tank">
-              <div className={`fill${low ? ' low' : ''}`} style={{ height: `${level ?? 0}%`, background: m.color }} />
-            </div>
-            <span className="lbl">{shortName(m.name)}</span>
-          </div>
-        )
-      })}
-    </div>
   )
 }

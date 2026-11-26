@@ -122,11 +122,11 @@ export function PresetEditor({ value, onChange, onSave, onDelete, onDuplicate, d
           {preview.loading && preview.url && <span style={{ position: 'absolute', top: 14, right: 14 }}><Spinner size={14} /></span>}
         </div>
         {samples.length > 0 && (
-          <div className="row" style={{ gap: 6, overflowX: 'auto', paddingBottom: 4, flexWrap: 'nowrap', minWidth: 0 }} aria-label="Sample photo">
+          <div className="row" style={{ gap: 6, overflowX: 'auto', padding: '4px 2px', flexWrap: 'nowrap', minWidth: 0 }} aria-label="Sample photo">
             {samples.map((s) => (
-              <button key={s.id} onClick={() => { setSampleId(s.id); setFocus(null) }} title={s.filename}
-                style={{ flex: 'none', width: 46, height: 46, padding: 0, border: s.id === sampleId ? '2px solid var(--text)' : '2px solid transparent', borderRadius: 4, overflow: 'hidden', cursor: 'pointer', background: 'var(--g2)' }}>
-                <img src={thumbUrl(s.id)} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+              <button key={s.id} onClick={() => { setSampleId(s.id); setFocus(null) }} title={s.filename} aria-pressed={s.id === sampleId}
+                className={`thumb-pick${s.id === sampleId ? ' on' : ''}`} style={{ flex: 'none', width: 46, height: 46 }}>
+                <img src={thumbUrl(s.id)} alt="" />
               </button>
             ))}
           </div>
@@ -171,7 +171,7 @@ export function PresetEditor({ value, onChange, onSave, onDelete, onDuplicate, d
             </Field>
             <Field label="Feed">
               <Select value={p.output.media_source} onChange={(v) => set((x) => { x.output.media_source = v })}
-                options={[{ value: 'auto', label: `Automatic${paper ? ` (${paper.default_feed === 'manual' ? 'manual feed' : 'top feed'})` : ''}` },
+                options={[{ value: 'auto', label: `Automatic${paper ? ` (${paper.default_feed === 'manual' ? 'Manual Feed' : 'Top Feed'})` : ''}` },
                   ...(caps?.sources ?? []).map((s) => ({ value: s.keyword, label: s.label }))]} />
             </Field>
           </div>
@@ -345,7 +345,7 @@ export function PresetEditor({ value, onChange, onSave, onDelete, onDuplicate, d
           <div className="hint">Drying time, head height and borderless extension are stored on the printer per paper type. Set them on the PRO-310 under Printer settings, Paper-related settings.</div>
         </Group>
 
-        <div className="row-between" style={{ marginTop: 10, position: 'sticky', bottom: 0, padding: '12px 0', background: 'var(--g1)' }}>
+        <div className="row-between save-bar">
           <div className="row" style={{ gap: 4 }}>
             {onDuplicate && <button className="btn btn-ghost btn-icon btn-sm" onClick={onDuplicate} title="Duplicate preset" aria-label="Duplicate preset"><Copy /></button>}
             {onDelete && <button className="btn btn-ghost btn-icon btn-sm btn-danger" onClick={onDelete} title="Delete preset" aria-label="Delete preset"><Trash2 /></button>}

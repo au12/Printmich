@@ -5,6 +5,7 @@ import { usePapers, usePresets, useRenderPreview, useSizes } from '../lib/hooks'
 import type { AssetSummary, Preset, RenderInfo } from '../lib/types'
 import { fmtDate, photoTitle, place, takenDate } from '../lib/format'
 import { Dialog, Field, NumberInput, Select, Spinner, Toggle, useToast } from './ui'
+import { inkBurst } from '../lib/fx'
 import { PrintSheet } from './PrintSheet'
 
 function clamp01(v: number) { return Math.min(1, Math.max(0, v)) }
@@ -138,7 +139,7 @@ export function PrintDialog({ asset, onClose, initialPresetId }: { asset: AssetS
                 <Toggle checked={draft.layout.caption.enabled} disabled={draft.layout.borderless}
                   onChange={(v) => set((p) => { p.layout.caption.enabled = v })} label="Caption under the photo"
                   hint={draft.layout.borderless ? 'Needs a border' : info?.caption || undefined} />
-                <Toggle checked={draft.color.mode !== 'color'} onChange={(v) => set((p) => { p.color.mode = v ? 'bw' : 'color' })} label="Black & white" />
+                <Toggle checked={draft.color.mode !== 'color'} onChange={(v) => set((p) => { p.color.mode = v ? 'bw' : 'color' })} label="Black and white" />
               </div>
               <Field label="Copies">
                 <NumberInput value={draft.output.copies} min={1} max={20} onChange={(v) => set((p) => { p.output.copies = v })} width={90} />
@@ -165,8 +166,8 @@ export function PrintDialog({ asset, onClose, initialPresetId }: { asset: AssetS
         </div>
         <div className="print-side-foot">
           <button className="btn btn-ghost" onClick={onClose}>Cancel</button>
-          <button className="btn btn-paper grow" onClick={print} disabled={busy || !draft}>
-            <Printer /> {draft && draft.output.copies > 1 ? `Print ${draft.output.copies} copies` : 'Print'}
+          <button className="btn btn-paper grow" onClick={(e) => { inkBurst(e.currentTarget); print() }} disabled={busy || !draft}>
+            {busy ? <Spinner size={14} /> : <Printer />} {draft && draft.output.copies > 1 ? `Print ${draft.output.copies} copies` : 'Print'}
           </button>
         </div>
       </div>

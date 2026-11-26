@@ -51,6 +51,13 @@ MIGRATIONS = [
     );
     CREATE INDEX ink_events_at ON ink_events(at);
     """,
+    # v3 (1.2.0): paper names are proper names, so the two built-in presets named after one follow suit
+    """
+    UPDATE presets SET name = '5×7 Semi-Gloss' WHERE id = 'p-5x7' AND name = '5×7 Semi-gloss';
+    UPDATE presets SET name = 'Black & White, Letter Matte' WHERE id = 'p-bw-matte' AND name = 'Black & white, Letter Matte';
+    UPDATE prints SET preset_name = '5×7 Semi-Gloss' WHERE preset_name = '5×7 Semi-gloss';
+    UPDATE prints SET preset_name = 'Black & White, Letter Matte' WHERE preset_name = 'Black & white, Letter Matte';
+    """,
 ]
 
 

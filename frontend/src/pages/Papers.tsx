@@ -1,15 +1,17 @@
 import { useEffect, useMemo, useState } from 'react'
-import { FileImage, Grid3x3, Plus, Printer, RotateCcw, Trash2, Upload } from 'lucide-react'
+import { FileImage, Grid3x3, Layers, Plus, Printer, RotateCcw, Trash2, Upload } from 'lucide-react'
 import { api, postImage, thumbUrl } from '../lib/api'
 import { useBrowse, useInvalidate, usePapers, usePresets, usePrinter, useSettings, useSizes } from '../lib/hooks'
 import type { Adjustments, Paper, RenderInfo } from '../lib/types'
-import { fmtDate, parseDate } from '../lib/format'
+import { fmtDate, parseDate, titleCase } from '../lib/format'
 import { Confirm, Dialog, Drawer, Empty, Field, Loading, NumberInput, Segmented, Select, Slider, Spinner, Toggle, useToast } from '../components/ui'
 
 const FINISH_LABEL: Record<string, string> = {
-  'high-gloss': 'High gloss', glossy: 'Glossy', luster: 'Luster', 'semi-gloss': 'Semi-gloss', baryta: 'Baryta', matte: 'Matte',
-  'premium-matte': 'Premium matte', 'fine-art-smooth': 'Fine art, smooth', 'fine-art-rough': 'Fine art, textured', canvas: 'Canvas', washi: 'Washi', plain: 'Plain',
+  'high-gloss': 'High Gloss', glossy: 'Glossy', luster: 'Luster', 'semi-gloss': 'Semi-Gloss', baryta: 'Baryta', matte: 'Matte',
+  'premium-matte': 'Premium Matte', 'fine-art-smooth': 'Fine Art, Smooth', 'fine-art-rough': 'Fine Art, Textured', canvas: 'Canvas', washi: 'Washi', plain: 'Plain',
 }
+const finishLabel = (f: string) => FINISH_LABEL[f] ?? titleCase(f.replace(/-/g, ' '))
+const FEED_LABEL: Record<string, string> = { top: 'Top Feed', manual: 'Manual Feed' }
 
 const ADJ: { key: keyof Adjustments; label: string }[] = [
   { key: 'brightness', label: 'Brightness' }, { key: 'contrast', label: 'Contrast' }, { key: 'saturation', label: 'Intensity' },
@@ -26,7 +28,7 @@ export function PaperSwatch({ paper, height = 92 }: { paper: Paper; height?: num
       filter: gloss < 0.1 ? 'contrast(0.97)' : undefined,
     }}>
       <span className="code">{paper.code || paper.brand}</span>
-      <span className="label">{paper.name}</span>
+      <span className="label">{titleCase(paper.name).split(' ').map((w, i) => <span key={i} style={{ whiteSpace: 'nowrap' }}>{w} </span>)}</span>
     </div>
   )
 }
@@ -60,17 +62,17 @@ function PatternTool({ paper, onApply }: { paper: Paper; onApply: (a: Adjustment
       <div className="hint">Prints nine versions of one photo. Pick the one that best matches your screen and apply it to this paper.</div>
       <div className="row wrap" style={{ gap: 6 }}>
         {samples.map((s) => (
-          <button key={s.id} onClick={() => setAssetId(s.id)} style={{ width: 40, height: 40, padding: 0, borderRadius: 4, overflow: 'hidden', border: s.id === assetId ? '2px solid var(--text)' : '2px solid transparent', cursor: 'pointer' }}>
-            <img src={thumbUrl(s.id)} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+          <button key={s.id} onClick={() => setAssetId(s.id)} aria-pressed={s.id === assetId} className={`thumb-pick${s.id === assetId ? ' on' : ''}`}>
+            <img src={thumbUrl(s.id)} alt="" />
           </button>
         ))}
       </div>
       <div className="grid-2">
-        <Segmented value={mode} onChange={setMode} block options={[{ value: 'color', label: 'Color balance' }, { value: 'tone', label: 'Brightness & contrast' }]} />
+        <Segmented value={mode} onChange={setMode} block options={[{ value: 'color', label: 'Color balance' }, { value: 'tone', label: 'Brightness and contrast' }]} />
         <Segmented value={step} onChange={setStep} block options={[5, 10, 15].map((v) => ({ value: v, label: `Step ${v}` }))} />
       </div>
       <Field label="Print on"><Select value={presetId} onChange={setPresetId} options={(presets.data ?? []).map((p) => ({ value: p.id, label: p.name }))} /></Field>
-      <div style={{ position: 'relative', background: 'var(--g0)', borderRadius: 'var(--r-m)', padding: 12, minHeight: 200, display: 'grid', placeItems: 'center' }}>
+      <div className="well">
         {img && <img src={img.url} alt="Color pattern preview" style={{ maxHeight: 360, boxShadow: 'var(--shadow-print)' }} />}
         {loading && <span style={{ position: 'absolute', top: 10, right: 10 }}><Spinner size={14} /></span>}
       </div>
@@ -130,9 +132,9 @@ function PaperEditor({ initial, onClose }: { initial: Paper; onClose: () => void
         <PaperSwatch paper={p} height={110} />
         <div className="prose small">{p.notes}</div>
         <dl className="kv">
-          <dt>Finish</dt><dd>{FINISH_LABEL[p.finish] ?? p.finish}</dd>
+          <dt>Finish</dt><dd>{finishLabel(p.finish)}</dd>
           <dt>Black ink</dt><dd>{p.black_ink === 'matte' ? 'Matte Black (MBK)' : 'Photo Black (PBK)'}</dd>
-          <dt>Feeds</dt><dd>{p.feeds.map((f) => (f === 'manual' ? 'Manual feed' : 'Top feed')).join(', ')}</dd>
+          <dt>Feeds</dt><dd>{p.feeds.map((f) => FEED_LABEL[f]).join(', ')}</dd>
           <dt>Borderless</dt><dd>{p.borderless ? 'Supported' : 'No'}</dd>
           {p.recommended_margins && (<><dt>Recommended margins</dt><dd>{p.recommended_margins.top} mm top and bottom</dd></>)}
         </dl>
@@ -145,7 +147,7 @@ function PaperEditor({ initial, onClose }: { initial: Paper; onClose: () => void
           </Field>
           <Field label="Default feed">
             <Segmented value={p.default_feed} onChange={(v) => set((x) => { x.default_feed = v })}
-              options={[{ value: 'top', label: 'Top feed' }, { value: 'manual', label: 'Manual feed' }]} />
+              options={[{ value: 'top', label: FEED_LABEL.top }, { value: 'manual', label: FEED_LABEL.manual }]} />
           </Field>
         </section>
 
@@ -293,12 +295,12 @@ export function PapersPage() {
   const list = papers.data ?? []
   const canon = list.filter((p) => p.brand === 'Canon')
   const others = list.filter((p) => p.brand !== 'Canon')
-  const card = (p: Paper) => (
-    <button key={p.id} className="paper-card" onClick={() => setEditing(p)}>
+  const card = (p: Paper, n: number) => (
+    <button key={p.id} className="paper-card" style={{ ['--i' as string]: n }} onClick={() => setEditing(p)}>
       <PaperSwatch paper={p} />
       <div className="stack-s" style={{ gap: 3 }}>
-        <div className="row-between"><span style={{ fontWeight: 600 }}>{FINISH_LABEL[p.finish] ?? p.finish}</span>{p.customized && <span className="chip">Adjusted</span>}</div>
-        <span className="small muted">{p.feeds.includes('manual') && !p.feeds.includes('top') ? 'Manual feed' : 'Top feed'}, {p.black_ink === 'matte' ? 'Matte Black' : 'Photo Black'}</span>
+        <div className="row-between"><span className="strong">{finishLabel(p.finish)}</span>{p.customized && <span className="chip chip-accent">Adjusted</span>}</div>
+        <span className="small muted">{FEED_LABEL[p.feeds.includes('manual') && !p.feeds.includes('top') ? 'manual' : 'top']}, {p.black_ink === 'matte' ? 'Matte Black' : 'Photo Black'}</span>
         {p.resolved?.media_type && <span className="small faint ellipsis">Prints as “{p.resolved.media_type.label}”</span>}
       </div>
     </button>
@@ -312,7 +314,7 @@ export function PapersPage() {
         </div>
         <div className="actions"><button className="btn" onClick={() => setAdding(true)}><Plus /> Add a paper</button></div>
       </header>
-      {!printer.data?.configured && <div style={{ marginBottom: 18 }}><Empty title="Connect a printer to see how papers map to its media types" /></div>}
+      {printer.data && !printer.data.configured && <div style={{ marginBottom: 18 }}><Empty icon={<Layers />} title="Connect a printer to see how papers map to its media types" /></div>}
       {papers.isLoading ? <Loading /> : (
         <>
           <section><div className="section-head"><h2 className="h2">Canon papers</h2></div><div className="paper-grid">{canon.map(card)}</div></section>

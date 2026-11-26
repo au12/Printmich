@@ -4,7 +4,7 @@ import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom'
 import { api, ApiError } from './lib/api'
 import { MorePage, Shell } from './components/Shell'
 import { ToastProvider, Loading } from './components/ui'
-import { InkMark } from './components/Ink'
+import { Logo } from './components/Logo'
 import { TodayPage } from './pages/Today'
 import { WallPage } from './pages/Wall'
 import { LibraryPage } from './pages/Library'
@@ -43,17 +43,20 @@ function Login({ onDone }: { onDone: () => void }) {
           setBusy(false)
         }
       }}>
-        <div className="row" style={{ alignItems: 'flex-end', gap: 12 }}>
-          <InkMark size={30} />
-          <span className="brand-word" style={{ fontSize: 26 }}>Printmich</span>
+        <div className="row" style={{ gap: 14 }}>
+          <Logo size={52} intro />
+          <div>
+            <div className="brand-word" style={{ fontSize: 26 }}>Printmich</div>
+            <div className="small muted" style={{ marginTop: 6 }}>Photos from Immich, on paper.</div>
+          </div>
         </div>
         <div className="field">
           <label htmlFor="pw">Password</label>
           <input id="pw" className="input" type="password" autoFocus autoComplete="current-password" value={password}
             onChange={(e) => setPassword(e.target.value)} />
-          {error && <div className="small" style={{ color: 'var(--err)' }}>{error}</div>}
+          {error && <div className="small" role="alert" style={{ color: 'var(--err)' }}>{error}</div>}
         </div>
-        <button className="btn btn-paper btn-lg" disabled={busy || !password}>Log in</button>
+        <button className="btn btn-paper btn-lg" disabled={busy || !password}>{busy ? 'Logging in…' : 'Log in'}</button>
       </form>
     </div>
   )
@@ -67,7 +70,7 @@ function Gate() {
     window.addEventListener('printmich:unauthorized', h)
     return () => window.removeEventListener('printmich:unauthorized', h)
   }, [qc])
-  if (auth.isLoading) return <Loading />
+  if (auth.isLoading) return <div className="boot"><div className="stack"><Logo size={84} intro wave /><Loading label="Warming up the printer" /></div></div>
   if (auth.data?.enabled && !auth.data.authenticated) {
     return <Login onDone={() => { qc.invalidateQueries() }} />
   }

@@ -35,7 +35,7 @@ def default_presets() -> list[Preset]:
                                           size_pt=10, italic=True, color="#2f2d2a")),
         ),
         Preset(
-            id="p-5x7", name="5×7 Semi-gloss", sort=2,
+            id="p-5x7", name="5×7 Semi-Gloss", sort=2,
             description="A little bigger for the fridge or a desk frame.",
             output=OutputSettings(paper_id="canon-sg-201", media_size="na_5x7_5x7in", quality="high"),
             layout=Layout(borderless=True),
@@ -49,7 +49,7 @@ def default_presets() -> list[Preset]:
                                           size_pt=9, italic=True)),
         ),
         Preset(
-            id="p-bw-matte", name="Black & white, Letter Matte", sort=4,
+            id="p-bw-matte", name="Black & White, Letter Matte", sort=4,
             description="Neutral monochrome on matte paper using the printer's gray inks.",
             output=OutputSettings(paper_id="canon-mp-101", media_size="na_letter_8.5x11in", quality="high"),
             layout=Layout(borderless=False, margins=Margins(top=25, right=25, bottom=32, left=25),

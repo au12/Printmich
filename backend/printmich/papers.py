@@ -11,6 +11,7 @@ from __future__ import annotations
 import re
 from typing import Any
 
+from .ipp import media
 from .models import Adjustments, Margins, Paper, PaperCalibration
 
 GLOSSY_GENERIC = ["photographic-high-gloss", "photographic-glossy", "photographic"]
@@ -64,7 +65,7 @@ BUILTIN_PAPERS: list[Paper] = [
         tint="#f8f7f3", sheen=0.6,
     ),
     Paper(
-        id="canon-sg-201", name="Photo Paper Plus Semi-gloss", code="SG-201", finish="semi-gloss",
+        id="canon-sg-201", name="Photo Paper Plus Semi-Gloss", code="SG-201", finish="semi-gloss",
         feeds=["top", "manual"], default_feed="top", borderless=True,
         media_type_hints=["plus semi gloss", "semi gloss", "semigloss", "satin"], media_type_generic=SEMI_GENERIC,
         calibration=_cal("relative", "low"),
@@ -219,15 +220,18 @@ def resolve_media_type(paper: Paper, types: list[dict[str, str]], override: str 
     Returns {"keyword", "label", "how"} where how is one of override/exact/hint/generic/none.
     """
     keywords = [t["keyword"] for t in types]
-    labels = {t["keyword"]: t.get("label") or t["keyword"] for t in types}
+    labels = {t["keyword"]: media.title_label(t.get("label")) or media.media_type_label(t["keyword"]) for t in types}
+
+    def label(kw: str) -> str:
+        return labels.get(kw) or media.media_type_label(kw)
+
     if override and override != "auto":
-        return {"keyword": override, "label": labels.get(override, override), "how": "override"}
+        return {"keyword": override, "label": label(override), "how": "override"}
     if paper.media_type and paper.media_type != "auto" and (not keywords or paper.media_type in keywords):
-        return {"keyword": paper.media_type, "label": labels.get(paper.media_type, paper.media_type),
-                "how": "paper"}
+        return {"keyword": paper.media_type, "label": label(paper.media_type), "how": "paper"}
     if not keywords:
         kw = paper.media_type_generic[0] if paper.media_type_generic else None
-        return {"keyword": kw, "label": kw, "how": "generic" if kw else "none"}
+        return {"keyword": kw, "label": label(kw) if kw else None, "how": "generic" if kw else "none"}
     best: tuple[int, str] | None = None
     for kw in keywords:
         hay = f"{_norm(kw)} | {_norm(labels.get(kw, ''))}"
@@ -238,10 +242,10 @@ def resolve_media_type(paper: Paper, types: list[dict[str, str]], override: str 
                 if best is None or score > best[0]:
                     best = (score, kw)
     if best:
-        return {"keyword": best[1], "label": labels.get(best[1], best[1]), "how": "hint"}
+        return {"keyword": best[1], "label": label(best[1]), "how": "hint"}
     for g in paper.media_type_generic:
         if g in keywords:
-            return {"keyword": g, "label": labels.get(g, g), "how": "generic"}
+            return {"keyword": g, "label": label(g), "how": "generic"}
     return {"keyword": None, "label": "Printer default", "how": "none"}
 
 

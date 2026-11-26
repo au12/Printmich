@@ -9,7 +9,7 @@ function Perm({ p }: { p: { name: string; why: string; granted: boolean | null }
   return (
     <div className="row" style={{ alignItems: 'flex-start', gap: 10, padding: '5px 0' }}>
       {p.granted === null ? <CircleHelp size={16} className="faint" /> : p.granted ? <Check size={16} style={{ color: 'var(--ok)' }} /> : <X size={16} style={{ color: 'var(--text-3)' }} />}
-      <div><div className="small" style={{ fontWeight: 560 }}>{p.name}</div><div className="small faint">{p.why}</div></div>
+      <div><div className="small strong">{p.name}</div><div className="small faint">{p.why}</div></div>
     </div>
   )
 }
@@ -218,7 +218,7 @@ export function SettingsPage() {
           </div>
         </section>
 
-        <div className="small faint">Printmich is open source. <a href="https://github.com/au12/printmich" target="_blank" rel="noreferrer">github.com/au12/printmich</a></div>
+        <div className="small faint">Printmich is open source. <a href="https://github.com/au12/Printmich" target="_blank" rel="noreferrer">github.com/au12/Printmich</a></div>
       </div>
     </div>
   )

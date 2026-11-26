@@ -49,3 +49,24 @@ def test_override_and_generic_fallback():
 def test_fine_art_prefers_manual_feed():
     paper = BUILTIN_BY_ID["canon-fa-rg"]
     assert resolve_media_source(paper, ["main", "manual", "top"]) in ("manual", "rear")
+
+
+def test_paper_names_are_title_cased():
+    from printmich.ipp.media import MEDIA_SOURCE_LABELS, MEDIA_TYPE_LABELS, media_type_label, title_label
+    from printmich.models import Paper
+
+    assert title_label("semi-gloss photo paper") == "Semi-Gloss Photo Paper"
+    assert title_label("satin / luster photo paper") == "Satin / Luster Photo Paper"
+    assert title_label("Photo Paper Plus Glossy II") == "Photo Paper Plus Glossy II"  # already-capitalized words are left alone
+    assert title_label("hahnemühle photo rag 308") == "Hahnemühle Photo Rag 308"
+    assert title_label("canson's baryta") == "Canson's Baryta"
+    # every built-in label and paper already reads that way
+    for label in [*MEDIA_TYPE_LABELS.values(), *MEDIA_SOURCE_LABELS.values(), *(p.name for p in BUILTIN_BY_ID.values())]:
+        assert label == title_label(label), label
+    # names a printer supplies in its strings file are normalized too
+    assert media_type_label("photographic-semi-gloss", {"media-type.photographic-semi-gloss": "Photo Paper Plus Semi-gloss"}) \
+        == "Photo Paper Plus Semi-Gloss"
+    # and so are papers people add themselves
+    assert Paper(id="custom-x", name="red river polar pearl metallic").name == "Red River Polar Pearl Metallic"
+    got = resolve_media_type(BUILTIN_BY_ID["canon-sg-201"], CANON_TYPES)
+    assert got["label"] == "Photo Paper Plus Semi-Gloss"

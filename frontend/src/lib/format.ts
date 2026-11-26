@@ -135,3 +135,18 @@ export function aspectOf(a: { width?: number | null; height?: number | null } | 
 export function plural(n: number, word: string, pluralWord = `${word}s`) {
   return `${n.toLocaleString()} ${n === 1 ? word : pluralWord}`
 }
+
+/**
+ * Paper, paper-type and feed names are proper names: every word starts with a capital
+ * ("semi-gloss photo paper" becomes "Semi-Gloss Photo Paper"). The rest of each word is left
+ * as written so "II", "PRO-310" and "A3+" survive.
+ */
+export function titleCase(s: string | null | undefined): string {
+  if (!s) return ''
+  return s.replace(/(^|[^\p{L}\p{N}_'’])(\p{Ll})/gu, (_, lead: string, ch: string) => lead + ch.toUpperCase())
+}
+
+/** "Tomorrow at 8:00 AM" in the middle of a sentence. */
+export function whenInline(s: string | null | undefined): string {
+  return whenLabel(s).replace(/^./, (c) => c.toLowerCase())
+}
